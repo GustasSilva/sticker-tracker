@@ -1,0 +1,113 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #0a1628;
+  color: #e8eaf0;
+  padding: 20px;
+  min-height: 100vh;
+}
+h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.4); margin-bottom: 6px; }
+#summary { text-align: center; font-size: 0.95rem; color: #aab; margin-bottom: 8px; }
+.link-btn { background: none; border: none; color: #ffd700; cursor: pointer; text-decoration: underline; font-size: 0.9rem; }
+#total-bar-wrap { max-width: 600px; margin: 0 auto 24px; background: #1e2d4a; border-radius: 8px; height: 12px; overflow: hidden; }
+#total-bar { height: 100%; background: linear-gradient(90deg, #ffd700, #ff8c00); border-radius: 8px; transition: width 0.3s; }
+
+.loading { text-align: center; padding: 40px; color: #aab; }
+
+.filter-bar { text-align: center; margin-bottom: 20px; }
+.filter-bar button {
+  background: #1e2d4a; color: #ccd; border: 1px solid #334;
+  padding: 6px 16px; border-radius: 20px; cursor: pointer; margin: 3px;
+  font-size: 0.82rem; transition: all 0.2s;
+}
+.filter-bar button:hover, .filter-bar button.active {
+  background: #ffd700; color: #0a1628; border-color: #ffd700; font-weight: bold;
+}
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; max-width: 1400px; margin: 0 auto; }
+
+.team-card { background: #132038; border: 1px solid #1e3055; border-radius: 10px; overflow: hidden; transition: box-shadow 0.2s; }
+.team-card:hover { box-shadow: 0 4px 20px rgba(0,200,83,0.3); }
+.team-complete:hover { box-shadow: 0 4px 20px rgba(212,175,55,0.5); }
+
+.intro-card, .coke-card { grid-column: 1 / -1; }
+
+.intro-card .team-header { background: linear-gradient(135deg, #0c1e3a 0%, #162848 50%, #0c1e3a 100%); border-bottom-color: #263a5a; }
+.intro-card .team-name { color: #c0b0f0; }
+.intro-card:hover { box-shadow: 0 4px 20px rgba(160,140,220,0.35) !important; }
+
+.coke-card .team-header { background: linear-gradient(135deg, #8b0000 0%, #cc0000 45%, #8b0000 100%); border-bottom-color: #cc0000; }
+.coke-card .team-name { color: #ffffff; font-weight: 800; letter-spacing: 0.03em; }
+.coke-card .team-count { color: rgba(255,255,255,0.8); }
+.coke-card .team-progress-fill { background: linear-gradient(90deg, #cc0000, #ff3333); }
+.coke-card:hover { box-shadow: 0 4px 20px rgba(204,0,0,0.45) !important; }
+
+.team-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #1a2d4e; border-bottom: 1px solid #243555; }
+.team-name { font-weight: 700; font-size: 0.95rem; color: #e8f0ff; }
+.team-count { font-size: 0.8rem; color: #aab; white-space: nowrap; }
+.team-progress { height: 4px; background: #0d1e36; }
+.team-progress-fill { height: 100%; background: linear-gradient(90deg, #00c853, #64dd17); transition: width 0.3s; }
+
+.stickers { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 10px; }
+.sticker-label { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 4px 2px; border-radius: 6px; transition: background 0.15s; user-select: none; }
+.sticker-label:hover { background: #1e3860; }
+.sticker-label input[type="checkbox"] { display: none; }
+.sticker-box {
+  width: 24px; height: 24px; border-radius: 5px; border: 2px solid #334;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; background: #0d1e36;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.sticker-num { font-size: 0.62rem; color: #778; margin-top: 2px; }
+
+input:checked + .sticker-box { background: #00c853; border-color: #00c853; box-shadow: 0 0 8px rgba(0,200,83,0.4); }
+input:checked + .sticker-box::after { content: '✓'; color: white; font-weight: bold; font-size: 13px; }
+.sticker-label.is-checked .sticker-num { color: #00c853; font-weight: bold; }
+
+@keyframes foil-sweep {
+  0%   { background-position: 220% center; }
+  100% { background-position: -220% center; }
+}
+.foil-sticker .sticker-box {
+  background: linear-gradient(110deg, #0d1e36 20%, #2a4460 38%, #6a90b0 50%, #2a4460 62%, #0d1e36 80%);
+  background-size: 300% auto;
+  border-color: #4a6a8a;
+  animation: foil-sweep 4s linear infinite;
+}
+.foil-sticker input:checked + .sticker-box {
+  background: linear-gradient(110deg, #5a6878 15%, #9ab4c8 38%, #dceaf6 50%, #9ab4c8 62%, #5a6878 85%);
+  background-size: 300% auto;
+  border-color: #88a8c4;
+  box-shadow: 0 0 10px rgba(136,168,200,0.55);
+}
+.foil-sticker input:checked + .sticker-box::after { color: #0a1628; }
+.foil-sticker.is-checked .sticker-num { color: #88a8c4; font-weight: bold; }
+
+.coke-sticker .sticker-box { border-color: #5a0a0a; background: #110608; }
+.coke-sticker input:checked + .sticker-box { background: #e61c23; border-color: #e61c23; box-shadow: 0 0 10px rgba(230,28,35,0.55); }
+.coke-sticker input:checked + .sticker-box::after { color: #ffffff; }
+.coke-sticker.is-checked .sticker-num { color: #e61c23; font-weight: bold; }
+
+@keyframes gold-shimmer {
+  0%   { box-shadow: 0 0 8px 3px rgba(212,175,55,0.45); }
+  50%  { box-shadow: 0 0 14px 5px rgba(212,175,55,0.65); }
+  100% { box-shadow: 0 0 8px 3px rgba(212,175,55,0.45); }
+}
+.team-complete .team-header { background: linear-gradient(135deg, #b8860b 0%, #d4af37 45%, #c8960c 100%); animation: gold-shimmer 5s ease-in-out infinite; border-bottom-color: #d4af37; }
+.team-complete .team-name { color: #0a1628; font-weight: 800; letter-spacing: 0.02em; }
+.team-complete .team-count { color: #0a1628; }
+
+.login-wrap {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 80vh; text-align: center; gap: 12px;
+}
+.login-wrap p { color: #aab; margin-bottom: 12px; }
+.google-btn {
+  background: #ffd700; color: #0a1628; border: none; border-radius: 8px;
+  padding: 12px 28px; font-size: 1rem; font-weight: bold; cursor: pointer;
+}
+.google-btn:hover { background: #ffe14d; }
+
+@media (max-width: 480px) {
+  .stickers { grid-template-columns: repeat(5, 1fr); }
+}
