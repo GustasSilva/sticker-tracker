@@ -375,11 +375,20 @@ function ColecaoTab({ data, owned, duplicates, toggle, setCount }) {
     });
   }
 
-  const allTeamCodes = data.teams.map(t => t.code);
-  const allCollapsed = allTeamCodes.every(c => collapsed.has(c));
+  const allIds = ['specials', 'coke', ...data.teams.map(t => t.code)];
+  const allCollapsed = allIds.every(c => collapsed.has(c));
 
   function toggleCollapseAll() {
-    setCollapsed(allCollapsed ? new Set() : new Set(allTeamCodes));
+    setCollapsed(allCollapsed ? new Set() : new Set(allIds));
+  }
+
+  function jump(code) {
+    const el = document.getElementById(`tc-${code}`);
+    if (!el) return;
+    if (collapsed.has(code)) {
+      setCollapsed(s => { const n = new Set(s); n.delete(code); return n; });
+    }
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
   }
 
   return (
@@ -400,17 +409,21 @@ function ColecaoTab({ data, owned, duplicates, toggle, setCount }) {
           value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
+      <GroupJumpBar teams={data.teams} owned={owned} jump={jump} />
+
       <div className="grid">
         <SpecialCard title="✦ Página Inicial / FIFA World Cup History"
           codes={data.specials} owned={owned} duplicates={duplicates} toggle={toggle}
           extraClass="intro-card" filter={filter} search={q}
           sectionCode="FWC" sectionName="Copa do Mundo 2026" cardColor="#B08030"
+          cardId="tc-specials"
           collapsed={collapsed.has('specials')} onToggleCollapse={() => toggleCollapse('specials')}
           onLongPress={openDupModal} />
         <SpecialCard title="🥤 Coca-Cola Bonus Stickers"
           codes={data.coke} owned={owned} duplicates={duplicates} toggle={toggle}
           extraClass="coke-card" filter={filter} search={q}
           sectionCode="CC" sectionName="Coca-Cola Stickers" cardColor="#CC0000"
+          cardId="tc-coke"
           collapsed={collapsed.has('coke')} onToggleCollapse={() => toggleCollapse('coke')}
           onLongPress={openDupModal} />
         {data.teams.map(team => (
@@ -436,7 +449,7 @@ function ColecaoTab({ data, owned, duplicates, toggle, setCount }) {
 }
 
 function SpecialCard({ title, codes, owned, duplicates, toggle, extraClass, filter, search,
-  sectionCode, sectionName, cardColor, collapsed, onToggleCollapse, onLongPress }) {
+  sectionCode, sectionName, cardColor, cardId, collapsed, onToggleCollapse, onLongPress }) {
   const n     = countOwned(codes, owned);
   const total = codes.length;
   const displayed = search ? codes.filter(c => matchesSearch(c, search)) : codes;
@@ -449,7 +462,7 @@ function SpecialCard({ title, codes, owned, duplicates, toggle, extraClass, filt
   }
 
   return (
-    <div className={`team-card ${extraClass}${collapsed ? ' is-collapsed' : ''}`}>
+    <div id={cardId} className={`team-card ${extraClass}${collapsed ? ' is-collapsed' : ''}`}>
       <div className="team-header" onClick={onToggleCollapse} style={{ cursor: 'pointer' }}>
         <span className="team-header-caret">{collapsed ? '▸' : '▾'}</span>
         <span className="team-name">{title}</span>
@@ -486,7 +499,7 @@ function TeamCard({ team, owned, duplicates, toggle, filter, search, collapsed, 
   const complete = n === total;
 
   return (
-    <div className={`team-card${complete ? ' team-complete' : ''}${collapsed ? ' is-collapsed' : ''}`}>
+    <div id={`tc-${team.code}`} className={`team-card${complete ? ' team-complete' : ''}${collapsed ? ' is-collapsed' : ''}`}>
       <div className="team-header" onClick={onToggleCollapse} style={{ cursor: 'pointer' }}>
         <span className="team-header-caret">{collapsed ? '▸' : '▾'}</span>
         <span className="team-name">
@@ -511,6 +524,49 @@ function TeamCard({ team, owned, duplicates, toggle, filter, search, collapsed, 
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Group Jump Bar ───────────────────────────────────────────────────────────
+
+function GroupJumpBar({ teams, owned, jump }) {
+  // Group teams by FIFA group letter
+  const groups = useMemo(() => {
+    const map = {};
+    for (const t of teams) {
+      if (!map[t.group]) map[t.group] = [];
+      map[t.group].push(t);
+    }
+    return Object.keys(map).sort().map(g => ({ letter: g, teams: map[g] }));
+  }, [teams]);
+
+  return (
+    <div className="jump-bar-wrap">
+      <div className="jump-bar">
+        {groups.map((g, gi) => (
+          <span key={g.letter} className="jump-group">
+            {gi > 0 && <span className="jump-divider" />}
+            <span className="jump-group-label">{g.letter}</span>
+            {g.teams.map(t => {
+              const iso = TEAM_ISO[t.code];
+              const n   = countOwned(t.stickers, owned);
+              const pct = Math.round((n / t.stickers.length) * 100);
+              return (
+                <button key={t.code} className="jump-chip" title={`${t.name} (${n}/${t.stickers.length})`}
+                  onClick={() => jump(t.code)}>
+                  {iso
+                    ? <span className={`fi fi-${iso} jump-chip-flag`} />
+                    : <span className="jump-chip-flag">{TEAM_FLAGS[t.code] || t.code[0]}</span>
+                  }
+                  <span className="jump-chip-code">{t.code}</span>
+                  <span className="jump-chip-bar"><span style={{ width: `${pct}%` }} /></span>
+                </button>
+              );
+            })}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
