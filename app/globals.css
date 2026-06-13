@@ -54,6 +54,9 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 /* ---- Sticker Grid ---- */
 .stickers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; }
 
+/* FWC / CC cards are full-width: keep stickers compact with auto-fill */
+.special-stickers { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); }
+
 .sticker-label {
   display: block;
   position: relative;
@@ -307,6 +310,13 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .search-input::placeholder { color: #556; }
 .search-input:focus { border-color: #ffd700; }
 
+/* ---- Comparar status bar ---- */
+.comparar-status {
+  background: #0d1e36; border: 1px solid #1e3055; border-radius: 8px;
+  padding: 8px 14px; font-size: 0.82rem; color: #aab; text-align: center;
+}
+.comparar-status strong { color: #ffd700; }
+
 /* ---- Trocas / Comparar ---- */
 .trocas-wrap { max-width: 680px; margin: 0 auto; padding: 0 16px 40px; display: flex; flex-direction: column; gap: 14px; }
 .trocas-section {
@@ -314,8 +324,9 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
   padding: 20px; display: flex; flex-direction: column; gap: 12px;
 }
 .trocas-section h3 { color: #ffd700; font-size: 0.95rem; margin: 0; }
-.trocas-section-header { display: flex; justify-content: space-between; align-items: center; }
-.trocas-badge { background: #1e3055; color: #aab; border-radius: 12px; padding: 2px 10px; font-size: 0.78rem; font-weight: normal; margin-left: 8px; }
+.trocas-section-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+.trocas-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.trocas-badge { background: #1e3055; color: #aab; border-radius: 12px; padding: 2px 10px; font-size: 0.75rem; font-weight: normal; white-space: nowrap; }
 .trocas-hint { color: #778; font-size: 0.82rem; margin: 0; }
 .trocas-hint code { background: #0d1e36; border-radius: 4px; padding: 1px 6px; color: #aab; font-family: monospace; }
 .trocas-empty { color: #556; font-size: 0.88rem; margin: 0; }
@@ -349,10 +360,11 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
   background: #0d1e36; border-radius: 8px; padding: 12px;
   max-height: 220px; overflow-y: auto;
 }
-.trocas-group { display: flex; gap: 8px; align-items: flex-start; font-size: 0.8rem; }
-.trocas-group-label { color: #aab; white-space: nowrap; min-width: 150px; display: flex; align-items: center; gap: 4px; }
+.trocas-group { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; padding-bottom: 4px; border-bottom: 1px solid #131d2e; }
+.trocas-group:last-child { border-bottom: none; padding-bottom: 0; }
+.trocas-group-label { color: #aab; display: flex; align-items: center; gap: 4px; flex-shrink: 0; font-size: 0.77rem; }
 .trocas-group-label .fi { width: 1.1em; height: 0.78em; border-radius: 1px; }
-.trocas-group-codes { display: flex; flex-wrap: wrap; gap: 4px; }
+.trocas-group-codes { display: flex; flex-wrap: wrap; gap: 3px; }
 .trocas-code {
   background: #1e3055; border-radius: 4px; padding: 2px 7px;
   color: #e8eaf0; font-family: monospace; font-size: 0.76rem;
@@ -368,9 +380,14 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .comparar-tab.active { background: #ffd700; color: #0a1628; border-color: #ffd700; font-weight: bold; }
 .comparar-tab:hover:not(.active) { border-color: #4a6a8a; color: #e8eaf0; }
 
-@media (max-width: 480px) {
+@media (max-width: 540px) {
   .stickers { grid-template-columns: repeat(4, 1fr); }
-  .tab-btn { font-size: 0.75rem; padding: 8px 6px; }
-  .trocas-group-label { min-width: 100px; }
+  .tab-btn { font-size: 0.72rem; padding: 8px 4px; }
   .comparar-tabs { flex-direction: column; }
+  .trocas-codes-display { max-height: 180px; }
+}
+
+@media (max-width: 360px) {
+  .stickers { grid-template-columns: repeat(3, 1fr); }
+  .tab-btn { font-size: 0.65rem; padding: 8px 2px; }
 }

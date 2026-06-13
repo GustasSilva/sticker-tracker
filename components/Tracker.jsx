@@ -21,13 +21,19 @@ function matchesSearch(code, q, teamName = '', teamCode = '') {
 
 function parseStickersText(text) {
   const result = {};
-  const upper = text.toUpperCase().replace(/[·;]/g, ' ').replace(/,/g, ' ');
+  // strip emoji/non-ASCII, keep alphanumeric + separators
+  const cleaned = text.replace(/[^\w\s:,.;·()\-]/g, ' ');
+  const upper = cleaned.toUpperCase().replace(/[·;]/g, ' ').replace(/,/g, ' ');
   const tokens = upper.split(/\s+/).filter(Boolean);
   let lastPrefix = null;
 
   for (const token of tokens) {
-    if (/^[A-Z]{2,4}$/.test(token)) { lastPrefix = token; continue; }
-
+    // Team prefix with optional colon: "BRA" or "BRA:"
+    if (/^[A-Z]{2,4}:?$/.test(token)) {
+      lastPrefix = token.replace(':', '');
+      continue;
+    }
+    // Combined code+num: "BRA3" or "BRA3(2X)"
     const combined = token.match(/^([A-Z]{2,4})(\d+)(?:\((\d+)X?\))?$/);
     if (combined) {
       const code = combined[1] + parseInt(combined[2]);
@@ -36,7 +42,7 @@ function parseStickersText(text) {
       lastPrefix = combined[1];
       continue;
     }
-
+    // Number only: "3" or "3(2X)"
     const numOnly = token.match(/^(\d+)(?:\((\d+)X?\))?$/);
     if (numOnly && lastPrefix) {
       const code = lastPrefix + parseInt(numOnly[1]);
@@ -44,17 +50,9 @@ function parseStickersText(text) {
       result[code] = (result[code] || 0) + qty;
       continue;
     }
-
     if (!/^\d/.test(token)) lastPrefix = null;
   }
-
   return result;
-}
-
-function formatCode(code) {
-  const m = code.match(/^([A-Z]+)(\d+)$/);
-  if (!m) return code;
-  return `${m[1]} ${m[2].padStart(2, '0')}`;
 }
 
 function groupByTeam(codeList, data) {
@@ -66,28 +64,29 @@ function groupByTeam(codeList, data) {
   if (cc.length) groups.push({ key: 'CC', label: 'Coca-Cola Stickers', flag: '🥤', codes: cc });
   for (const team of data.teams) {
     const tc = team.stickers.filter(c => codeSet.has(c));
-    if (tc.length) groups.push({ key: team.code, label: team.name, flag: TEAM_FLAGS[team.code] || '🏳', codes: tc });
+    if (tc.length) groups.push({ key: team.code, label: team.name, flag: TEAM_FLAGS[team.code] || '', codes: tc });
   }
   return groups;
 }
 
+function codeNum(code) {
+  const m = code.match(/^([A-Z]*)(\d+)$/);
+  return m ? m[2] : code;
+}
+
+function formatGroupLine(g) {
+  return `${g.flag}${g.key}: ${g.codes.map(codeNum).join(' · ')}`;
+}
+
 function generateDupText(duplicates, data) {
   const lines = ['Tenho essas figurinhas REPETIDAS da Copa 2026 disponíveis pra troca!', ''];
-  for (const g of groupByTeam(duplicates, data)) {
-    lines.push(`${g.flag} ${g.label.toUpperCase()}`);
-    lines.push(g.codes.map(c => formatCode(c)).join(', '));
-    lines.push('');
-  }
+  for (const g of groupByTeam(duplicates, data)) lines.push(formatGroupLine(g));
   return lines.join('\n').trim();
 }
 
 function generateMissingText(missingCodes, data) {
   const lines = ['Preciso dessas figurinhas da Copa 2026!', ''];
-  for (const g of groupByTeam(missingCodes, data)) {
-    lines.push(`${g.flag} ${g.label.toUpperCase()}`);
-    lines.push(`${g.key}: ${g.codes.map(c => c.replace(g.key, '')).join(' · ')}`);
-    lines.push('');
-  }
+  for (const g of groupByTeam(missingCodes, data)) lines.push(formatGroupLine(g));
   return lines.join('\n').trim();
 }
 
@@ -109,13 +108,14 @@ function Flag({ teamCode }) {
 }
 
 function GroupFlag({ groupKey, fallback }) {
-  return TEAM_ISO[groupKey] ? <Flag teamCode={groupKey} /> : <span>{fallback}</span>;
+  return TEAM_ISO[groupKey]
+    ? <Flag teamCode={groupKey} />
+    : fallback ? <span>{fallback}</span> : null;
 }
 
 function DupModal({ code, initial, onSave, onClose }) {
   const [qty, setQty] = useState(initial);
   const name = PLAYER_NAMES[code] || '';
-
   return (
     <div className="dup-modal-backdrop" onClick={onClose}>
       <div className="dup-modal" onClick={e => e.stopPropagation()}>
@@ -135,7 +135,7 @@ function DupModal({ code, initial, onSave, onClose }) {
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Main Tracker ─────────────────────────────────────────────────────────────
 
 export default function Tracker({ data, userEmail }) {
   const supabase = useMemo(() => createClient(), []);
@@ -212,21 +212,48 @@ export default function Tracker({ data, userEmail }) {
     );
   }
 
+  // When qty > 0: auto-mark sticker as owned too
   async function saveDuplicates(updates) {
     const userId = await getUserId();
     if (!userId) return;
     const newDups = { ...duplicates };
+    const newOwned = new Set(owned);
     for (const [code, qty] of Object.entries(updates)) {
-      if (qty <= 0) delete newDups[code]; else newDups[code] = qty;
+      if (qty <= 0) {
+        delete newDups[code];
+      } else {
+        newDups[code] = qty;
+        newOwned.add(code); // having duplicates implies owning the sticker
+      }
     }
     setDuplicates(newDups);
+    setOwned(newOwned);
     await supabase.from('user_progress').upsert(
       Object.entries(updates).map(([code, qty]) => ({
-        user_id: userId, sticker_code: code, owned: owned.has(code),
+        user_id: userId, sticker_code: code,
+        owned: newOwned.has(code),
         duplicates: Math.max(0, qty), updated_at: new Date().toISOString(),
       })),
       { onConflict: 'user_id,sticker_code' }
     );
+  }
+
+  async function importOwned(codes) {
+    const toAdd = codes.filter(c => allCodes.has(c) && !owned.has(c));
+    if (!toAdd.length) return 0;
+    const newOwned = new Set(owned);
+    toAdd.forEach(c => newOwned.add(c));
+    setOwned(newOwned);
+    const userId = await getUserId();
+    if (!userId) return toAdd.length;
+    await supabase.from('user_progress').upsert(
+      toAdd.map(c => ({
+        user_id: userId, sticker_code: c, owned: true,
+        duplicates: duplicates[c] ?? 0, updated_at: new Date().toISOString(),
+      })),
+      { onConflict: 'user_id,sticker_code' }
+    );
+    return toAdd.length;
   }
 
   async function clearDuplicates() {
@@ -260,14 +287,15 @@ export default function Tracker({ data, userEmail }) {
       </div>
 
       <nav className="tab-nav">
-        {[['colecao','📖 Coleção'],['trocas','🔄 Trocas'],['comparar','🔍 Comparar']].map(([id, label]) => (
+        {[['colecao','📖 Coleção'],['trocas','🔄 Trocas'],['comparar','🔍 Comparar'],['config','⚙️']].map(([id, label]) => (
           <button key={id} className={`tab-btn${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>{label}</button>
         ))}
       </nav>
 
-      {tab === 'colecao' && <ColecaoTab data={data} owned={owned} duplicates={duplicates} toggle={toggle} saveDuplicates={saveDuplicates} />}
-      {tab === 'trocas' && <TrocasTab data={data} owned={owned} duplicates={duplicates} missingCodes={missingCodes} allCodes={allCodes} saveDuplicates={saveDuplicates} clearDuplicates={clearDuplicates} />}
+      {tab === 'colecao'  && <ColecaoTab data={data} owned={owned} duplicates={duplicates} toggle={toggle} saveDuplicates={saveDuplicates} />}
+      {tab === 'trocas'   && <TrocasTab data={data} owned={owned} duplicates={duplicates} missingCodes={missingCodes} allCodes={allCodes} saveDuplicates={saveDuplicates} clearDuplicates={clearDuplicates} />}
       {tab === 'comparar' && <CompararTab data={data} owned={owned} duplicates={duplicates} allCodes={allCodes} />}
+      {tab === 'config'   && <ConfigTab allCodes={allCodes} owned={owned} duplicates={duplicates} importOwned={importOwned} saveDuplicates={saveDuplicates} />}
     </div>
   );
 }
@@ -278,12 +306,9 @@ function ColecaoTab({ data, owned, duplicates, toggle, saveDuplicates }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [dupModal, setDupModal] = useState(null);
-
   const q = normalize(search.trim());
 
-  function openDupModal(code) {
-    setDupModal({ code });
-  }
+  function openDupModal(code) { setDupModal({ code }); }
 
   async function handleDupSave(code, qty) {
     await saveDuplicates({ [code]: qty });
@@ -311,38 +336,20 @@ function ColecaoTab({ data, owned, duplicates, toggle, saveDuplicates }) {
         <SpecialCard
           title="✦ Página Inicial / FIFA World Cup History"
           codes={data.specials}
-          owned={owned}
-          duplicates={duplicates}
-          toggle={toggle}
-          extraClass="intro-card"
-          filter={filter}
-          search={q}
-          cardColor="#B08030"
-          onLongPress={openDupModal}
+          owned={owned} duplicates={duplicates} toggle={toggle}
+          extraClass="intro-card" filter={filter} search={q}
+          cardColor="#B08030" onLongPress={openDupModal}
         />
         <SpecialCard
           title="🥤 Coca-Cola Bonus Stickers"
           codes={data.coke}
-          owned={owned}
-          duplicates={duplicates}
-          toggle={toggle}
-          extraClass="coke-card"
-          filter={filter}
-          search={q}
-          cardColor="#CC0000"
-          onLongPress={openDupModal}
+          owned={owned} duplicates={duplicates} toggle={toggle}
+          extraClass="coke-card" filter={filter} search={q}
+          cardColor="#CC0000" onLongPress={openDupModal}
         />
         {data.teams.map(team => (
-          <TeamCard
-            key={team.code}
-            team={team}
-            owned={owned}
-            duplicates={duplicates}
-            toggle={toggle}
-            filter={filter}
-            search={q}
-            onLongPress={openDupModal}
-          />
+          <TeamCard key={team.code} team={team} owned={owned} duplicates={duplicates}
+            toggle={toggle} filter={filter} search={q} onLongPress={openDupModal} />
         ))}
       </div>
 
@@ -361,13 +368,12 @@ function ColecaoTab({ data, owned, duplicates, toggle, saveDuplicates }) {
 function SpecialCard({ title, codes, owned, duplicates, toggle, extraClass, filter, search, cardColor, onLongPress }) {
   const n = countOwned(codes, owned);
   const total = codes.length;
-
   const displayed = search ? codes.filter(c => matchesSearch(c, search)) : codes;
 
   if (displayed.length === 0) return null;
   if (!search) {
-    if (filter === 'complete' && n < total) return null;
-    if (filter === 'none' && n > 0) return null;
+    if (filter === 'complete'   && n < total) return null;
+    if (filter === 'none'       && n > 0)     return null;
     if (filter === 'incomplete' && (n === 0 || n === total)) return null;
   }
 
@@ -380,17 +386,10 @@ function SpecialCard({ title, codes, owned, duplicates, toggle, extraClass, filt
       <div className="team-progress">
         <div className="team-progress-fill" style={{ width: `${(n / total) * 100}%` }} />
       </div>
-      <div className="stickers">
+      <div className="stickers special-stickers">
         {displayed.map(code => (
-          <StickerBox
-            key={code}
-            code={code}
-            owned={owned.has(code)}
-            onToggle={() => toggle(code)}
-            dupQty={duplicates[code] || 0}
-            teamColor={cardColor}
-            onLongPress={() => onLongPress(code)}
-          />
+          <StickerBox key={code} code={code} owned={owned.has(code)} onToggle={() => toggle(code)}
+            dupQty={duplicates[code] || 0} teamColor={cardColor} onLongPress={() => onLongPress(code)} />
         ))}
       </div>
     </div>
@@ -427,17 +426,10 @@ function TeamCard({ team, owned, duplicates, toggle, filter, search, onLongPress
         {displayed.map(code => {
           const posIdx = team.stickers.indexOf(code);
           return (
-            <StickerBox
-              key={code}
-              code={code}
-              owned={owned.has(code)}
-              onToggle={() => toggle(code)}
-              foil={posIdx === 0}
-              special={posIdx === 12}
-              dupQty={duplicates[code] || 0}
-              teamColor={teamColor}
-              onLongPress={() => onLongPress(code)}
-            />
+            <StickerBox key={code} code={code} owned={owned.has(code)} onToggle={() => toggle(code)}
+              foil={posIdx === 0} special={posIdx === 12}
+              dupQty={duplicates[code] || 0} teamColor={teamColor}
+              onLongPress={() => onLongPress(code)} />
           );
         })}
       </div>
@@ -446,15 +438,15 @@ function TeamCard({ team, owned, duplicates, toggle, filter, search, onLongPress
 }
 
 function StickerBox({ code, owned, onToggle, foil, special, dupQty, teamColor, onLongPress }) {
-  const timerRef = useRef(null);
-  const longFiredRef = useRef(false);
-  const startPos = useRef({ x: 0, y: 0 });
+  const timerRef  = useRef(null);
+  const longFired = useRef(false);
+  const startPos  = useRef({ x: 0, y: 0 });
 
   function handlePointerDown(e) {
     startPos.current = { x: e.clientX, y: e.clientY };
-    longFiredRef.current = false;
+    longFired.current = false;
     timerRef.current = setTimeout(() => {
-      longFiredRef.current = true;
+      longFired.current = true;
       onLongPress?.();
     }, 600);
   }
@@ -463,27 +455,22 @@ function StickerBox({ code, owned, onToggle, foil, special, dupQty, teamColor, o
     clearTimeout(timerRef.current);
     const dx = Math.abs(e.clientX - startPos.current.x);
     const dy = Math.abs(e.clientY - startPos.current.y);
-    if (!longFiredRef.current && dx < 10 && dy < 10) {
-      onToggle();
-    }
-    longFiredRef.current = false;
+    if (!longFired.current && dx < 10 && dy < 10) onToggle();
+    longFired.current = false;
   }
 
-  function cancel() {
-    clearTimeout(timerRef.current);
-    longFiredRef.current = false;
-  }
+  function cancel() { clearTimeout(timerRef.current); longFired.current = false; }
 
-  const name = PLAYER_NAMES[code];
-  const m = code.match(/^([A-Z]+)(\d+)$/);
+  const name   = PLAYER_NAMES[code];
+  const m      = code.match(/^([A-Z]*)(\d+)$/);
   const prefix = m ? m[1] : '';
-  const num = m ? m[2] : code;
-  const tooltip = [code, name && `· ${name}`, dupQty > 0 && `(${dupQty}x repetida)`].filter(Boolean).join(' ');
+  const num    = m ? m[2] : code;
+  const tip    = [code, name && `· ${name}`, dupQty > 0 && `(${dupQty}x repetida)`].filter(Boolean).join(' ');
 
   return (
     <div
       className={`sticker-label${foil ? ' foil-sticker' : ''}${special ? ' special-sticker' : ''}${owned ? ' is-checked' : ''}`}
-      title={tooltip}
+      title={tip}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerLeave={cancel}
@@ -492,7 +479,7 @@ function StickerBox({ code, owned, onToggle, foil, special, dupQty, teamColor, o
     >
       <div className="sticker-box">
         <span className="sticker-pos">
-          <span className="sticker-prefix">{prefix}</span>
+          {prefix && <span className="sticker-prefix">{prefix}</span>}
           <span className="sticker-num-big">{num}</span>
         </span>
         {dupQty > 0 && <span className="dup-corner">{dupQty}x</span>}
@@ -505,32 +492,26 @@ function StickerBox({ code, owned, onToggle, foil, special, dupQty, teamColor, o
 // ─── Trocas ───────────────────────────────────────────────────────────────────
 
 function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplicates, clearDuplicates }) {
-  const [input, setInput] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [input, setInput]     = useState('');
+  const [saving, setSaving]   = useState(false);
   const [feedback, setFeedback] = useState('');
-  const [copied, setCopied] = useState('');
+  const [copied, setCopied]   = useState('');
 
   const dupCodes = Object.keys(duplicates);
   const dupTotal = Object.values(duplicates).reduce((s, q) => s + q, 0);
 
   async function markDuplicates() {
     if (!input.trim()) return;
-    setSaving(true);
-    setFeedback('');
+    setSaving(true); setFeedback('');
     const parsed = parseStickersText(input);
     const valid = {};
     for (const [code, qty] of Object.entries(parsed)) {
       if (allCodes.has(code)) valid[code] = qty;
     }
     const count = Object.keys(valid).length;
-    if (!count) {
-      setFeedback('Nenhum código válido. Use: MEX 5, BRA: 13, CAN 3(2x)');
-      setSaving(false);
-      return;
-    }
+    if (!count) { setFeedback('Nenhum código válido. Use: MEX 5, BRA: 13, CAN 3(2x)'); setSaving(false); return; }
     await saveDuplicates(valid);
-    setInput('');
-    setFeedback(`✓ ${count} figurinha(s) marcada(s).`);
+    setInput(''); setFeedback(`✓ ${count} figurinha(s) marcada(s) como repetidas (e coladas).`);
     setSaving(false);
   }
 
@@ -548,13 +529,9 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
       <section className="trocas-section">
         <h3>➕ Adicionar repetidas</h3>
         <p className="trocas-hint">Formatos aceitos: <code>MEX 5(2x)</code> ou <code>BRA: 13, 14</code> ou <code>CAN 3</code></p>
-        <textarea
-          className="trocas-textarea"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Pan: 9(2x), Bra: 13(1x), MEX 5..."
-          rows={4}
-        />
+        <p className="trocas-hint">Figurinhas com repetidas são automaticamente marcadas como coladas.</p>
+        <textarea className="trocas-textarea" value={input} onChange={e => setInput(e.target.value)}
+          placeholder="Pan: 9(2x), Bra: 13(1x), MEX 5..." rows={4} />
         {feedback && <p className="trocas-feedback">{feedback}</p>}
         <button className="trocas-primary-btn" onClick={markDuplicates} disabled={saving || !input.trim()}>
           {saving ? 'Salvando...' : '📌 Marcar como repetidas'}
@@ -563,8 +540,11 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
 
       <section className="trocas-section">
         <div className="trocas-section-header">
-          <h3>🔄 Minhas repetidas <span className="trocas-badge">{dupCodes.length} figurinha(s) / {dupTotal} cópia(s)</span></h3>
-          {dupCodes.length > 0 && <button className="trocas-danger-btn" onClick={clearDuplicates}>Zerar todas</button>}
+          <h3>🔄 Minhas repetidas</h3>
+          <div className="trocas-header-right">
+            <span className="trocas-badge">{dupCodes.length} fig. / {dupTotal} cópias</span>
+            {dupCodes.length > 0 && <button className="trocas-danger-btn" onClick={clearDuplicates}>Zerar</button>}
+          </div>
         </div>
         {!dupCodes.length ? (
           <p className="trocas-empty">Nenhuma repetida cadastrada.</p>
@@ -574,13 +554,13 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
               {dupGroups.map(g => (
                 <div key={g.key} className="trocas-group">
                   <span className="trocas-group-label">
-                    <GroupFlag groupKey={g.key} fallback={g.flag} /> {g.label}:
+                    <GroupFlag groupKey={g.key} fallback={g.flag} />
+                    {g.label}:
                   </span>
                   <span className="trocas-group-codes">
                     {g.codes.map(c => {
-                      const n = c.replace(g.key, '');
                       const q = duplicates[c];
-                      return <span key={c} className="trocas-code">{n}{q > 1 ? <sup>{q}x</sup> : ''}</span>;
+                      return <span key={c} className="trocas-code">{codeNum(c)}{q > 1 ? <sup>{q}x</sup> : ''}</span>;
                     })}
                   </span>
                 </div>
@@ -595,7 +575,8 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
 
       <section className="trocas-section">
         <div className="trocas-section-header">
-          <h3>❓ Minhas faltantes <span className="trocas-badge">{missingCodes.length} figurinha(s)</span></h3>
+          <h3>❓ Minhas faltantes</h3>
+          <span className="trocas-badge">{missingCodes.length} fig.</span>
         </div>
         {!missingCodes.length ? (
           <p className="trocas-empty">🎉 Álbum completo!</p>
@@ -605,12 +586,11 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
               {misGroups.map(g => (
                 <div key={g.key} className="trocas-group">
                   <span className="trocas-group-label">
-                    <GroupFlag groupKey={g.key} fallback={g.flag} /> {g.label}:
+                    <GroupFlag groupKey={g.key} fallback={g.flag} />
+                    {g.label}:
                   </span>
                   <span className="trocas-group-codes">
-                    {g.codes.map(c => (
-                      <span key={c} className="trocas-code">{c.replace(g.key, '')}</span>
-                    ))}
+                    {g.codes.map(c => <span key={c} className="trocas-code">{codeNum(c)}</span>)}
                   </span>
                 </div>
               ))}
@@ -628,10 +608,10 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
 // ─── Comparar ─────────────────────────────────────────────────────────────────
 
 function CompararTab({ data, owned, duplicates, allCodes }) {
-  const [mode, setMode] = useState('pegar');
-  const [input, setInput] = useState('');
-  const [result, setResult] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [mode, setMode]       = useState('pegar');
+  const [input, setInput]     = useState('');
+  const [result, setResult]   = useState(null);
+  const [copied, setCopied]   = useState(false);
 
   function compare() {
     const parsed = parseStickersText(input);
@@ -648,15 +628,14 @@ function CompararTab({ data, owned, duplicates, allCodes }) {
   function copyResult() {
     if (!result?.length) return;
     const header = mode === 'pegar' ? 'Figurinhas que posso pegar:' : 'Figurinhas que posso dar:';
-    const body = groupByTeam(result, data)
-      .map(g => `${g.flag} ${g.label.toUpperCase()}\n${g.key}: ${g.codes.map(c => c.replace(g.key, '')).join(' · ')}`)
-      .join('\n\n');
+    const body = groupByTeam(result, data).map(formatGroupLine).join('\n');
     navigator.clipboard.writeText(`${header}\n\n${body}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   const resultGroups = result ? groupByTeam(result, data) : [];
+  const dupCount = Object.keys(duplicates).length;
 
   return (
     <div className="trocas-wrap">
@@ -669,20 +648,26 @@ function CompararTab({ data, owned, duplicates, allCodes }) {
         </button>
       </div>
 
+      <div className="comparar-status">
+        Você tem <strong>{owned.size}</strong> figurinhas coladas e <strong>{dupCount}</strong> repetidas cadastradas.
+      </div>
+
       <section className="trocas-section">
-        <p className="trocas-hint">
-          {mode === 'pegar'
-            ? 'Cole as figurinhas REPETIDAS da outra pessoa. O app mostra quais dessas você ainda precisa.'
-            : 'Cole as figurinhas que FALTAM para a outra pessoa. O app mostra quais você tem de repetida para dar.'}
-        </p>
-        <p className="trocas-hint"><em>Formato:</em> FWC 1, MEX 5, BRA: 13, 14 ...</p>
-        <textarea
-          className="trocas-textarea"
-          value={input}
+        {mode === 'pegar' ? (
+          <>
+            <p className="trocas-hint">Cole as figurinhas <strong>REPETIDAS</strong> da outra pessoa.</p>
+            <p className="trocas-hint">Resultado: quais dessas você ainda <strong>não tem</strong> (pode pegar).</p>
+          </>
+        ) : (
+          <>
+            <p className="trocas-hint">Cole as figurinhas que <strong>FALTAM</strong> para a outra pessoa.</p>
+            <p className="trocas-hint">Resultado: quais dessas você tem como <strong>repetida</strong> para dar.</p>
+          </>
+        )}
+        <p className="trocas-hint"><em>Formato aceito:</em> FWC 1, MEX 5, BRA: 13 · 14 ...</p>
+        <textarea className="trocas-textarea" value={input}
           onChange={e => { setInput(e.target.value); setResult(null); }}
-          rows={5}
-          placeholder="FWC 1, MEX 5, BRA: 13, 14..."
-        />
+          rows={5} placeholder="FWC 1, MEX 5, BRA: 13 · 14..." />
         <button className="trocas-primary-btn" onClick={compare} disabled={!input.trim()}>
           🔍 Comparar agora
         </button>
@@ -693,8 +678,10 @@ function CompararTab({ data, owned, duplicates, allCodes }) {
           <div className="trocas-section-header">
             <h3>
               {result.length
-                ? `${result.length} figurinha(s) ${mode === 'pegar' ? 'que você precisa' : 'que você pode dar'}:`
-                : 'Nenhuma correspondência encontrada.'}
+                ? `${result.length} figurinha(s) ${mode === 'pegar' ? 'que você pode pegar' : 'que você pode dar'}:`
+                : mode === 'pegar'
+                  ? 'Você já tem todas essas figurinhas!'
+                  : 'Nenhuma dessas você tem de repetida.'}
             </h3>
             {result.length > 0 && (
               <button className="trocas-copy-btn" onClick={copyResult}>
@@ -707,12 +694,11 @@ function CompararTab({ data, owned, duplicates, allCodes }) {
               {resultGroups.map(g => (
                 <div key={g.key} className="trocas-group">
                   <span className="trocas-group-label">
-                    <GroupFlag groupKey={g.key} fallback={g.flag} /> {g.label}:
+                    <GroupFlag groupKey={g.key} fallback={g.flag} />
+                    {g.label}:
                   </span>
                   <span className="trocas-group-codes">
-                    {g.codes.map(c => (
-                      <span key={c} className="trocas-code">{c.replace(g.key, '')}</span>
-                    ))}
+                    {g.codes.map(c => <span key={c} className="trocas-code">{codeNum(c)}</span>)}
                   </span>
                 </div>
               ))}
@@ -720,6 +706,105 @@ function CompararTab({ data, owned, duplicates, allCodes }) {
           )}
         </section>
       )}
+    </div>
+  );
+}
+
+// ─── Config / Importação ──────────────────────────────────────────────────────
+
+function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates }) {
+  const [ownedInput, setOwnedInput] = useState('');
+  const [dupInput,   setDupInput]   = useState('');
+  const [misInput,   setMisInput]   = useState('');
+  const [busy,   setBusy]   = useState('');
+  const [msgs,   setMsgs]   = useState({});
+
+  function setMsg(k, v) { setMsgs(m => ({ ...m, [k]: v })); }
+
+  async function handleImportOwned() {
+    setBusy('owned');
+    const parsed = parseStickersText(ownedInput);
+    const codes = Object.keys(parsed).filter(c => allCodes.has(c));
+    const count = await importOwned(codes);
+    setMsg('owned', count > 0 ? `✓ ${count} figurinha(s) nova(s) marcada(s) como coladas.` : 'Nenhuma figurinha nova encontrada.');
+    if (count > 0) setOwnedInput('');
+    setBusy('');
+  }
+
+  async function handleImportDup() {
+    setBusy('dup');
+    const parsed = parseStickersText(dupInput);
+    const valid = {};
+    for (const [code, qty] of Object.entries(parsed)) {
+      if (allCodes.has(code)) valid[code] = qty;
+    }
+    const count = Object.keys(valid).length;
+    if (count) {
+      await saveDuplicates(valid);
+      setMsg('dup', `✓ ${count} figurinha(s) de repetidas importadas (marcadas como coladas também).`);
+      setDupInput('');
+    } else {
+      setMsg('dup', 'Nenhum código válido encontrado.');
+    }
+    setBusy('');
+  }
+
+  async function handleImportMissing() {
+    setBusy('mis');
+    const parsed = parseStickersText(misInput);
+    const missingSet = new Set(Object.keys(parsed).filter(c => allCodes.has(c)));
+    const toOwn = [...allCodes].filter(c => !missingSet.has(c));
+    const count = await importOwned(toOwn);
+    setMsg('mis', count > 0
+      ? `✓ ${count} figurinha(s) marcada(s) como coladas (exceto as ${missingSet.size} faltantes da lista).`
+      : 'Nenhuma figurinha nova para marcar.');
+    if (count > 0) setMisInput('');
+    setBusy('');
+  }
+
+  return (
+    <div className="trocas-wrap">
+      <section className="trocas-section">
+        <h3>✅ Importar coladas</h3>
+        <p className="trocas-hint">Cole a lista de figurinhas que você tem. Apenas as novas serão marcadas.</p>
+        <p className="trocas-hint"><em>Formato:</em> <code>BRA: 1 · 2 · 3</code> ou <code>MEX 5 BRA3 FWC 1</code></p>
+        <textarea className="trocas-textarea" value={ownedInput}
+          onChange={e => { setOwnedInput(e.target.value); setMsg('owned', ''); }}
+          rows={4} placeholder="BRA: 1 · 2 · 3, MEX 5, FWC 1..." />
+        {msgs.owned && <p className="trocas-feedback">{msgs.owned}</p>}
+        <button className="trocas-primary-btn" onClick={handleImportOwned}
+          disabled={busy === 'owned' || !ownedInput.trim()}>
+          {busy === 'owned' ? 'Importando...' : '✅ Marcar como coladas'}
+        </button>
+      </section>
+
+      <section className="trocas-section">
+        <h3>🔄 Importar repetidas</h3>
+        <p className="trocas-hint">Cole a lista de repetidas com quantidade. Figurinhas com repetidas são automaticamente marcadas como coladas.</p>
+        <p className="trocas-hint"><em>Formato:</em> <code>BRA 3(2x)</code> ou <code>MEX: 5 6(3x)</code></p>
+        <textarea className="trocas-textarea" value={dupInput}
+          onChange={e => { setDupInput(e.target.value); setMsg('dup', ''); }}
+          rows={4} placeholder="BRA 3(2x), MEX: 5 6(3x), FWC 1..." />
+        {msgs.dup && <p className="trocas-feedback">{msgs.dup}</p>}
+        <button className="trocas-primary-btn" onClick={handleImportDup}
+          disabled={busy === 'dup' || !dupInput.trim()}>
+          {busy === 'dup' ? 'Importando...' : '📌 Importar repetidas'}
+        </button>
+      </section>
+
+      <section className="trocas-section">
+        <h3>❓ Importar faltantes</h3>
+        <p className="trocas-hint">Cole a lista de figurinhas que você <strong>NÃO tem</strong>. Tudo que não estiver na lista será marcado como colado automaticamente.</p>
+        <p className="trocas-hint">⚠️ Não desmarca figurinhas já coladas. Apenas adiciona novas.</p>
+        <textarea className="trocas-textarea" value={misInput}
+          onChange={e => { setMisInput(e.target.value); setMsg('mis', ''); }}
+          rows={4} placeholder="BRA: 5 · 6 · 7, MEX 3 4 5..." />
+        {msgs.mis && <p className="trocas-feedback">{msgs.mis}</p>}
+        <button className="trocas-primary-btn" onClick={handleImportMissing}
+          disabled={busy === 'mis' || !misInput.trim()}>
+          {busy === 'mis' ? 'Importando...' : '🚀 Marcar tudo exceto faltantes'}
+        </button>
+      </section>
     </div>
   );
 }
