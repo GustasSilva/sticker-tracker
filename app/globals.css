@@ -42,9 +42,15 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .coke-card .team-progress-fill { background: linear-gradient(90deg, #cc0000, #ff3333); }
 .coke-card:hover { box-shadow: 0 4px 20px rgba(204,0,0,0.45) !important; }
 
-.team-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #1a2d4e; border-bottom: 1px solid #243555; }
-.team-name { font-weight: 700; font-size: 0.92rem; color: #e8f0ff; display: flex; align-items: center; gap: 6px; }
+.team-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #1a2d4e; border-bottom: 1px solid #243555; gap: 6px; }
+.team-header:hover { background: #1e3460; }
+.team-header-caret { font-size: 0.7rem; color: #556; flex-shrink: 0; transition: transform 0.2s; line-height: 1; }
+.team-name { font-weight: 700; font-size: 0.92rem; color: #e8f0ff; display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .team-count { font-size: 0.8rem; color: #aab; white-space: nowrap; }
+
+/* Collapsed card: hide progress bar underline, no stickers rendered */
+.team-card.is-collapsed .team-progress { display: none; }
+.team-card.is-collapsed { opacity: 0.75; }
 .team-progress { height: 4px; background: #0d1e36; }
 .team-progress-fill { height: 100%; background: linear-gradient(90deg, #00c853, #64dd17); transition: width 0.3s; }
 
@@ -97,14 +103,17 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 }
 .sticker-label.is-checked .sticker-box::before { opacity: 0.42; }
 
-/* Number label (top-left) */
-.sticker-pos {
+/* Number label — centered, above the name strip */
+.sticker-center {
   position: absolute;
-  top: 3px;
-  left: 4px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 18px; /* room for name strip */
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   z-index: 1;
   line-height: 1;
   pointer-events: none;
@@ -117,9 +126,9 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
   letter-spacing: 0.04em;
 }
 .sticker-num-big {
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: bold;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255,255,255,0.75);
   line-height: 1.1;
 }
 .sticker-label.is-checked .sticker-num-big { color: #fff; }
@@ -194,7 +203,7 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .team-complete .team-name { color: #0a1628; font-weight: 800; letter-spacing: 0.02em; }
 .team-complete .team-count { color: #0a1628; }
 
-/* ---- Duplicate modal ---- */
+/* ---- Duplicate modal (design: images 12-13) ---- */
 .dup-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -208,33 +217,75 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .dup-modal {
   background: #132038;
   border: 1px solid #2a4070;
-  border-radius: 16px;
-  padding: 28px 32px;
-  min-width: 240px;
+  border-radius: 18px;
+  padding: 24px 28px 20px;
+  min-width: 260px;
+  max-width: 320px;
+  width: 90vw;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   box-shadow: 0 8px 40px rgba(0,0,0,0.7);
 }
-.dup-modal-title { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
-.dup-modal-code { font-size: 1.1rem; font-weight: bold; color: #ffd700; letter-spacing: 0.05em; }
-.dup-modal-name { font-size: 0.82rem; color: #aab; }
-.dup-modal-controls { display: flex; align-items: center; gap: 22px; }
+
+/* Header: flag + code + team */
+.dup-modal-header {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+}
+.dup-modal-flag { font-size: 1.8rem; line-height: 1; width: 2rem; height: 1.4rem; border-radius: 3px; flex-shrink: 0; }
+.dup-modal-flag-emoji { font-size: 1.8rem; line-height: 1; }
+.dup-modal-id { display: flex; flex-direction: column; gap: 2px; }
+.dup-modal-code { font-size: 1.05rem; font-weight: bold; color: #ffd700; letter-spacing: 0.06em; }
+.dup-modal-team { font-size: 0.75rem; color: #778; }
+
+.dup-modal-name { font-size: 0.82rem; color: #aab; text-align: center; }
+
+/* Counter */
+.dup-modal-controls { display: flex; align-items: center; gap: 24px; }
 .dup-modal-btn {
   background: #1e3055; border: 2px solid #2a4070; color: #e8eaf0;
-  border-radius: 50%; width: 44px; height: 44px; font-size: 1.5rem;
+  border-radius: 50%; width: 48px; height: 48px; font-size: 1.6rem;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   transition: all 0.15s; line-height: 1; padding: 0;
 }
 .dup-modal-btn:hover { background: #ffd700; color: #0a1628; border-color: #ffd700; }
-.dup-modal-qty { font-size: 2.4rem; font-weight: bold; color: #ffd700; min-width: 2.5ch; text-align: center; }
-.dup-modal-label { font-size: 0.74rem; color: #556; margin-top: -10px; }
+.dup-modal-qty { font-size: 2.8rem; font-weight: bold; color: #ffd700; min-width: 2.5ch; text-align: center; line-height: 1; }
+
+/* Status text */
+.dup-modal-status { font-size: 0.8rem; color: #778; text-align: center; }
+.dup-modal-status.is-owned { color: #00c853; }
+.dup-modal-status.has-rep  { color: #ffb300; }
+.dup-modal-status.not-owned{ color: #556; }
+
+/* Status dots */
+.dup-modal-dots { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.dup-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.dup-dot.green { background: #00c853; box-shadow: 0 0 5px rgba(0,200,83,0.5); }
+.dup-dot.amber { background: #ffb300; box-shadow: 0 0 5px rgba(255,179,0,0.5); }
+.dup-dot-more { font-size: 0.72rem; color: #778; }
+
+/* Trade badge */
+.dup-trade-badge {
+  background: rgba(255,179,0,0.12); border: 1px solid rgba(255,179,0,0.35);
+  border-radius: 20px; padding: 4px 14px; font-size: 0.76rem; color: #ffb300;
+  text-align: center;
+}
+
+/* Action row */
+.dup-modal-actions { display: flex; gap: 8px; width: 100%; margin-top: 2px; }
 .dup-modal-save {
-  background: #ffd700; color: #0a1628; border: none; border-radius: 8px;
-  padding: 11px 32px; font-size: 0.95rem; font-weight: bold; cursor: pointer; transition: background 0.2s;
+  flex: 1; background: #ffd700; color: #0a1628; border: none; border-radius: 8px;
+  padding: 11px 20px; font-size: 0.92rem; font-weight: bold; cursor: pointer; transition: background 0.2s;
 }
 .dup-modal-save:hover { background: #ffe14d; }
+.dup-modal-zero {
+  flex: 1; background: none; color: #ff6b6b; border: 1px solid #ff6b6b; border-radius: 8px;
+  padding: 10px 12px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.dup-modal-zero:hover { background: rgba(255,107,107,0.12); }
 
 /* ---- Auth ---- */
 .login-wrap {
@@ -302,6 +353,12 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 
 /* ---- Controls bar ---- */
 .controls-bar { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
+.controls-top-row { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 660px; justify-content: center; flex-wrap: wrap; }
+.collapse-all-btn {
+  background: none; border: 1px solid #2a4070; color: #778; border-radius: 20px;
+  padding: 5px 14px; font-size: 0.78rem; cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0;
+}
+.collapse-all-btn:hover { border-color: #ffd700; color: #ffd700; }
 .search-input {
   background: #0d1e36; border: 1px solid #1e3055; border-radius: 20px;
   color: #e8eaf0; padding: 8px 18px; font-size: 0.9rem; outline: none;
