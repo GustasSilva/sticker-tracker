@@ -1,3 +1,33 @@
+export const TEAM_ISO = {
+  MEX:'mx', RSA:'za', KOR:'kr', CZE:'cz',
+  CAN:'ca', BIH:'ba', QAT:'qa', SUI:'ch',
+  BRA:'br', MAR:'ma', HAI:'ht', SCO:'gb-sct',
+  USA:'us', PAR:'py', AUS:'au', TUR:'tr',
+  GER:'de', CUW:'cw', CIV:'ci', ECU:'ec',
+  NED:'nl', JPN:'jp', SWE:'se', TUN:'tn',
+  BEL:'be', EGY:'eg', IRN:'ir', NZL:'nz',
+  ESP:'es', CPV:'cv', KSA:'sa', URU:'uy',
+  FRA:'fr', SEN:'sn', IRQ:'iq', NOR:'no',
+  ARG:'ar', ALG:'dz', AUT:'at', JOR:'jo',
+  POR:'pt', COD:'cd', UZB:'uz', COL:'co',
+  ENG:'gb-eng', CRO:'hr', GHA:'gh', PAN:'pa',
+};
+
+export const TEAM_COLORS = {
+  MEX:'#006847', RSA:'#008751', KOR:'#C60C30', CZE:'#D7141A',
+  CAN:'#FF0000', BIH:'#002395', QAT:'#8D1B3D', SUI:'#E00000',
+  BRA:'#009C3B', MAR:'#C1272D', HAI:'#00209F', SCO:'#0065BF',
+  USA:'#002868', PAR:'#D52B1E', AUS:'#003087', TUR:'#E30A17',
+  GER:'#505050', CUW:'#002B7F', CIV:'#F77F00', ECU:'#0032A0',
+  NED:'#FF6B1A', JPN:'#BC002D', SWE:'#006AA7', TUN:'#E70013',
+  BEL:'#EF3340', EGY:'#C8102E', IRN:'#239F40', NZL:'#00247D',
+  ESP:'#AA151B', CPV:'#003893', KSA:'#006C35', URU:'#5EB6E4',
+  FRA:'#002395', SEN:'#00853F', IRQ:'#007A3D', NOR:'#EF2B2D',
+  ARG:'#74ACDF', ALG:'#006233', AUT:'#ED2939', JOR:'#007A3D',
+  POR:'#006600', COD:'#007FFF', UZB:'#1EB53A', COL:'#FCD116',
+  ENG:'#012169', CRO:'#E81524', GHA:'#006B3F', PAN:'#DA121A',
+};
+
 export const TEAM_FLAGS = {
   MEX:'🇲🇽', RSA:'🇿🇦', KOR:'🇰🇷', CZE:'🇨🇿',
   CAN:'🇨🇦', BIH:'🇧🇦', QAT:'🇶🇦', SUI:'🇨🇭',

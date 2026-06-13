@@ -43,27 +43,122 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .coke-card:hover { box-shadow: 0 4px 20px rgba(204,0,0,0.45) !important; }
 
 .team-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #1a2d4e; border-bottom: 1px solid #243555; }
-.team-name { font-weight: 700; font-size: 0.95rem; color: #e8f0ff; }
+.team-name { font-weight: 700; font-size: 0.92rem; color: #e8f0ff; display: flex; align-items: center; gap: 6px; }
 .team-count { font-size: 0.8rem; color: #aab; white-space: nowrap; }
 .team-progress { height: 4px; background: #0d1e36; }
 .team-progress-fill { height: 100%; background: linear-gradient(90deg, #00c853, #64dd17); transition: width 0.3s; }
 
-.stickers { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 10px; }
-.sticker-label { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 4px 2px; border-radius: 6px; transition: background 0.15s; user-select: none; }
-.sticker-label:hover { background: #1e3860; }
-.sticker-label input[type="checkbox"] { display: none; }
+/* flag-icons sizing in team header */
+.team-name .fi { width: 1.3em; height: 0.9em; border-radius: 2px; flex-shrink: 0; }
+
+/* ---- Sticker Grid ---- */
+.stickers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; }
+
+.sticker-label {
+  display: block;
+  position: relative;
+  cursor: pointer;
+  border-radius: 7px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: transform 0.1s;
+}
+.sticker-label:active { transform: scale(0.93); }
+
 .sticker-box {
-  width: 24px; height: 24px; border-radius: 5px; border: 2px solid #334;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; background: #0d1e36;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 7px;
+  border: 2px solid rgba(255,255,255,0.08);
+  background: #0d1e36;
+  position: relative;
+  overflow: hidden;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.sticker-num { font-size: 0.62rem; color: #778; margin-top: 2px; }
 
-input:checked + .sticker-box { background: #00c853; border-color: #00c853; box-shadow: 0 0 8px rgba(0,200,83,0.4); }
-input:checked + .sticker-box::after { content: '✓'; color: white; font-weight: bold; font-size: 13px; }
-.sticker-label.is-checked .sticker-num { color: #00c853; font-weight: bold; }
+/* Team-colour tint layer */
+.sticker-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--tc, #1e3055);
+  opacity: 0.1;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
 
+.sticker-label.is-checked .sticker-box {
+  border-color: var(--tc, #00c853);
+  box-shadow: 0 0 6px rgba(0,0,0,0.3);
+}
+.sticker-label.is-checked .sticker-box::before { opacity: 0.42; }
+
+/* Number label (top-left) */
+.sticker-pos {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  z-index: 1;
+  line-height: 1;
+  pointer-events: none;
+}
+.sticker-prefix {
+  font-size: 0.38rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.38);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sticker-num-big {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.1;
+}
+.sticker-label.is-checked .sticker-num-big { color: #fff; }
+
+/* Player name strip (bottom) */
+.sticker-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.52);
+  font-size: 0.44rem;
+  color: rgba(255,255,255,0.88);
+  text-align: center;
+  padding: 2px 3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Duplicate count badge (top-right) */
+.dup-corner {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #ffd700;
+  color: #0a1628;
+  border-radius: 3px;
+  font-size: 0.42rem;
+  font-weight: bold;
+  padding: 1px 3px;
+  line-height: 1.3;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Foil (escudo) sticker */
 @keyframes foil-sweep {
   0%   { background-position: 220% center; }
   100% { background-position: -220% center; }
@@ -74,19 +169,18 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
   border-color: #4a6a8a;
   animation: foil-sweep 4s linear infinite;
 }
-.foil-sticker input:checked + .sticker-box {
+.foil-sticker .sticker-box::before { display: none; }
+.foil-sticker.is-checked .sticker-box {
   background: linear-gradient(110deg, #5a6878 15%, #9ab4c8 38%, #dceaf6 50%, #9ab4c8 62%, #5a6878 85%);
   background-size: 300% auto;
   border-color: #88a8c4;
   box-shadow: 0 0 10px rgba(136,168,200,0.55);
 }
-.foil-sticker input:checked + .sticker-box::after { color: #0a1628; }
-.foil-sticker.is-checked .sticker-num { color: #88a8c4; font-weight: bold; }
+.foil-sticker.is-checked .sticker-num-big { color: #dceaf6; }
 
-.coke-sticker .sticker-box { border-color: #5a0a0a; background: #110608; }
-.coke-sticker input:checked + .sticker-box { background: #e61c23; border-color: #e61c23; box-shadow: 0 0 10px rgba(230,28,35,0.55); }
-.coke-sticker input:checked + .sticker-box::after { color: #ffffff; }
-.coke-sticker.is-checked .sticker-num { color: #e61c23; font-weight: bold; }
+/* Team photo (position 13) */
+.special-sticker .sticker-box { border-color: rgba(100,120,180,0.3); }
+.special-sticker .sticker-box::before { background: #2a4a8a; }
 
 @keyframes gold-shimmer {
   0%   { box-shadow: 0 0 8px 3px rgba(212,175,55,0.45); }
@@ -97,6 +191,49 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
 .team-complete .team-name { color: #0a1628; font-weight: 800; letter-spacing: 0.02em; }
 .team-complete .team-count { color: #0a1628; }
 
+/* ---- Duplicate modal ---- */
+.dup-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+.dup-modal {
+  background: #132038;
+  border: 1px solid #2a4070;
+  border-radius: 16px;
+  padding: 28px 32px;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+}
+.dup-modal-title { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+.dup-modal-code { font-size: 1.1rem; font-weight: bold; color: #ffd700; letter-spacing: 0.05em; }
+.dup-modal-name { font-size: 0.82rem; color: #aab; }
+.dup-modal-controls { display: flex; align-items: center; gap: 22px; }
+.dup-modal-btn {
+  background: #1e3055; border: 2px solid #2a4070; color: #e8eaf0;
+  border-radius: 50%; width: 44px; height: 44px; font-size: 1.5rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; line-height: 1; padding: 0;
+}
+.dup-modal-btn:hover { background: #ffd700; color: #0a1628; border-color: #ffd700; }
+.dup-modal-qty { font-size: 2.4rem; font-weight: bold; color: #ffd700; min-width: 2.5ch; text-align: center; }
+.dup-modal-label { font-size: 0.74rem; color: #556; margin-top: -10px; }
+.dup-modal-save {
+  background: #ffd700; color: #0a1628; border: none; border-radius: 8px;
+  padding: 11px 32px; font-size: 0.95rem; font-weight: bold; cursor: pointer; transition: background 0.2s;
+}
+.dup-modal-save:hover { background: #ffe14d; }
+
+/* ---- Auth ---- */
 .login-wrap {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 80vh; text-align: center; gap: 12px;
@@ -108,11 +245,7 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
   padding: 28px 32px; width: 100%; max-width: 360px; display: flex;
   flex-direction: column; gap: 0;
 }
-
-.auth-tabs {
-  display: flex; margin-bottom: 20px;
-  border-bottom: 2px solid #1e3055;
-}
+.auth-tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #1e3055; }
 .auth-tab {
   flex: 1; background: none; border: none; color: #aab;
   padding: 10px; font-size: 0.95rem; cursor: pointer;
@@ -121,9 +254,7 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
 }
 .auth-tab.active { color: #ffd700; border-bottom-color: #ffd700; font-weight: bold; }
 .auth-tab:hover:not(.active) { color: #e8eaf0; }
-
 .auth-form { display: flex; flex-direction: column; gap: 10px; }
-
 .auth-input {
   background: #0d1e36; border: 1px solid #1e3055; border-radius: 8px;
   color: #e8eaf0; padding: 11px 14px; font-size: 0.95rem; outline: none;
@@ -131,7 +262,6 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
 }
 .auth-input::placeholder { color: #556; }
 .auth-input:focus { border-color: #ffd700; }
-
 .auth-btn {
   background: #ffd700; color: #0a1628; border: none; border-radius: 8px;
   padding: 12px; font-size: 1rem; font-weight: bold; cursor: pointer;
@@ -139,18 +269,13 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
 }
 .auth-btn:hover:not(:disabled) { background: #ffe14d; }
 .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
 .auth-error { color: #ff6b6b; font-size: 0.85rem; text-align: left; }
 .auth-success { color: #00c853; font-size: 0.85rem; text-align: left; }
-
 .auth-divider {
   display: flex; align-items: center; gap: 10px;
   color: #445; font-size: 0.85rem; margin: 18px 0;
 }
-.auth-divider::before, .auth-divider::after {
-  content: ''; flex: 1; height: 1px; background: #1e3055;
-}
-
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: #1e3055; }
 .google-btn {
   background: transparent; color: #e8eaf0; border: 1px solid #1e3055; border-radius: 8px;
   padding: 11px 28px; font-size: 0.95rem; font-weight: bold; cursor: pointer;
@@ -158,33 +283,11 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
 }
 .google-btn:hover { border-color: #ffd700; color: #ffd700; }
 
-/* special sticker (team photo position 13) */
-.special-sticker .sticker-box { border-color: #4a6a8a; background: #1a2d4e; }
-
-/* duplicate badge */
-.dup-badge {
-  display: inline-block;
-  background: #ffd700;
-  color: #0a1628;
-  border-radius: 3px;
-  font-size: 0.42rem;
-  font-weight: bold;
-  padding: 1px 3px;
-  margin-left: 2px;
-  vertical-align: super;
-  line-height: 1.2;
-}
-
-/* tab navigation */
+/* ---- Tab nav ---- */
 .tab-nav {
-  display: flex;
-  justify-content: center;
-  gap: 4px;
-  margin: 16px auto 24px;
-  max-width: 480px;
-  background: #0d1e36;
-  border-radius: 10px;
-  padding: 4px;
+  display: flex; justify-content: center; gap: 4px;
+  margin: 16px auto 24px; max-width: 480px;
+  background: #0d1e36; border-radius: 10px; padding: 4px;
 }
 .tab-btn {
   flex: 1; background: none; border: none; color: #aab;
@@ -194,7 +297,7 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
 .tab-btn.active { background: #1e3055; color: #ffd700; font-weight: bold; }
 .tab-btn:hover:not(.active) { color: #e8eaf0; }
 
-/* search + filter bar */
+/* ---- Controls bar ---- */
 .controls-bar { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
 .search-input {
   background: #0d1e36; border: 1px solid #1e3055; border-radius: 20px;
@@ -204,7 +307,7 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
 .search-input::placeholder { color: #556; }
 .search-input:focus { border-color: #ffd700; }
 
-/* trocas / comparar shared */
+/* ---- Trocas / Comparar ---- */
 .trocas-wrap { max-width: 680px; margin: 0 auto; padding: 0 16px 40px; display: flex; flex-direction: column; gap: 14px; }
 .trocas-section {
   background: #132038; border: 1px solid #1e3055; border-radius: 10px;
@@ -217,7 +320,6 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
 .trocas-hint code { background: #0d1e36; border-radius: 4px; padding: 1px 6px; color: #aab; font-family: monospace; }
 .trocas-empty { color: #556; font-size: 0.88rem; margin: 0; }
 .trocas-feedback { color: #00c853; font-size: 0.83rem; margin: 0; }
-
 .trocas-textarea {
   background: #0d1e36; border: 1px solid #1e3055; border-radius: 8px;
   color: #e8eaf0; padding: 12px; font-size: 0.88rem; font-family: monospace;
@@ -225,34 +327,31 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
 }
 .trocas-textarea:focus { border-color: #ffd700; }
 .trocas-textarea::placeholder { color: #445; }
-
 .trocas-primary-btn {
   background: #ffd700; color: #0a1628; border: none; border-radius: 8px;
   padding: 12px; font-size: 0.95rem; font-weight: bold; cursor: pointer; transition: background 0.2s;
 }
 .trocas-primary-btn:hover:not(:disabled) { background: #ffe14d; }
 .trocas-primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
 .trocas-copy-btn {
   background: #1e3055; color: #e8eaf0; border: 1px solid #2a4070;
   border-radius: 8px; padding: 9px 16px; font-size: 0.83rem; cursor: pointer;
   transition: all 0.2s; align-self: flex-start;
 }
 .trocas-copy-btn:hover { border-color: #ffd700; color: #ffd700; }
-
 .trocas-danger-btn {
   background: none; color: #ff6b6b; border: 1px solid #ff6b6b;
   border-radius: 6px; padding: 5px 12px; font-size: 0.78rem; cursor: pointer; transition: all 0.2s;
 }
 .trocas-danger-btn:hover { background: #ff6b6b; color: white; }
-
 .trocas-codes-display {
   display: flex; flex-direction: column; gap: 6px;
   background: #0d1e36; border-radius: 8px; padding: 12px;
   max-height: 220px; overflow-y: auto;
 }
 .trocas-group { display: flex; gap: 8px; align-items: flex-start; font-size: 0.8rem; }
-.trocas-group-label { color: #aab; white-space: nowrap; min-width: 150px; }
+.trocas-group-label { color: #aab; white-space: nowrap; min-width: 150px; display: flex; align-items: center; gap: 4px; }
+.trocas-group-label .fi { width: 1.1em; height: 0.78em; border-radius: 1px; }
 .trocas-group-codes { display: flex; flex-wrap: wrap; gap: 4px; }
 .trocas-code {
   background: #1e3055; border-radius: 4px; padding: 2px 7px;
@@ -260,7 +359,7 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
 }
 .trocas-code sup { color: #ffd700; font-size: 0.65em; margin-left: 1px; }
 
-/* comparar mode tabs */
+/* ---- Comparar tabs ---- */
 .comparar-tabs { display: flex; gap: 8px; }
 .comparar-tab {
   flex: 1; background: #1e3055; color: #aab; border: 1px solid #2a4070;
@@ -270,7 +369,7 @@ input:checked + .sticker-box::after { content: '✓'; color: white; font-weight:
 .comparar-tab:hover:not(.active) { border-color: #4a6a8a; color: #e8eaf0; }
 
 @media (max-width: 480px) {
-  .stickers { grid-template-columns: repeat(5, 1fr); }
+  .stickers { grid-template-columns: repeat(4, 1fr); }
   .tab-btn { font-size: 0.75rem; padding: 8px 6px; }
   .trocas-group-label { min-width: 100px; }
   .comparar-tabs { flex-direction: column; }

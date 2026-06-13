@@ -1,10 +1,23 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PLAYER_NAMES, TEAM_FLAGS } from '@/data/players';
+import { PLAYER_NAMES, TEAM_FLAGS, TEAM_ISO, TEAM_COLORS } from '@/data/players';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const COMBINING_RE = new RegExp('[\\u0300-\\u036f]', 'g');
+const normalize = s => s.normalize('NFD').replace(COMBINING_RE, '').toLowerCase();
+
+function matchesSearch(code, q, teamName = '', teamCode = '') {
+  if (!q) return true;
+  const nq = normalize(q).replace(/\s+/g, '');
+  if (normalize(code).replace(/\s+/g, '').includes(nq)) return true;
+  if (normalize(PLAYER_NAMES[code] || '').includes(normalize(q))) return true;
+  if (teamName && normalize(teamName).includes(normalize(q))) return true;
+  if (teamCode && normalize(teamCode).includes(nq)) return true;
+  return false;
+}
 
 function parseStickersText(text) {
   const result = {};
@@ -62,7 +75,7 @@ function generateDupText(duplicates, data) {
   const lines = ['Tenho essas figurinhas REPETIDAS da Copa 2026 disponíveis pra troca!', ''];
   for (const g of groupByTeam(duplicates, data)) {
     lines.push(`${g.flag} ${g.label.toUpperCase()}`);
-    lines.push(g.codes.map(c => `${formatCode(c)}${(duplicates[c] || 1) > 1 ? ` (${duplicates[c]}x)` : ''}`).join(', '));
+    lines.push(g.codes.map(c => formatCode(c)).join(', '));
     lines.push('');
   }
   return lines.join('\n').trim();
@@ -85,6 +98,41 @@ function shouldShow(filter, n, total) {
   if (filter === 'complete') return n === total;
   if (filter === 'none') return n === 0;
   return true;
+}
+
+// ─── Small components ─────────────────────────────────────────────────────────
+
+function Flag({ teamCode }) {
+  const iso = TEAM_ISO[teamCode];
+  if (!iso) return null;
+  return <span className={`fi fi-${iso}`} />;
+}
+
+function GroupFlag({ groupKey, fallback }) {
+  return TEAM_ISO[groupKey] ? <Flag teamCode={groupKey} /> : <span>{fallback}</span>;
+}
+
+function DupModal({ code, initial, onSave, onClose }) {
+  const [qty, setQty] = useState(initial);
+  const name = PLAYER_NAMES[code] || '';
+
+  return (
+    <div className="dup-modal-backdrop" onClick={onClose}>
+      <div className="dup-modal" onClick={e => e.stopPropagation()}>
+        <div className="dup-modal-title">
+          <span className="dup-modal-code">{code}</span>
+          {name && <span className="dup-modal-name">{name}</span>}
+        </div>
+        <div className="dup-modal-controls">
+          <button className="dup-modal-btn" onClick={() => setQty(q => Math.max(0, q - 1))}>−</button>
+          <span className="dup-modal-qty">{qty}</span>
+          <button className="dup-modal-btn" onClick={() => setQty(q => q + 1)}>+</button>
+        </div>
+        <div className="dup-modal-label">repetida(s)</div>
+        <button className="dup-modal-save" onClick={() => onSave(code, qty)}>Salvar</button>
+      </div>
+    </div>
+  );
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -217,7 +265,7 @@ export default function Tracker({ data, userEmail }) {
         ))}
       </nav>
 
-      {tab === 'colecao' && <ColecaoTab data={data} owned={owned} duplicates={duplicates} toggle={toggle} />}
+      {tab === 'colecao' && <ColecaoTab data={data} owned={owned} duplicates={duplicates} toggle={toggle} saveDuplicates={saveDuplicates} />}
       {tab === 'trocas' && <TrocasTab data={data} owned={owned} duplicates={duplicates} missingCodes={missingCodes} allCodes={allCodes} saveDuplicates={saveDuplicates} clearDuplicates={clearDuplicates} />}
       {tab === 'comparar' && <CompararTab data={data} owned={owned} duplicates={duplicates} allCodes={allCodes} />}
     </div>
@@ -226,17 +274,20 @@ export default function Tracker({ data, userEmail }) {
 
 // ─── Coleção ──────────────────────────────────────────────────────────────────
 
-function ColecaoTab({ data, owned, duplicates, toggle }) {
+function ColecaoTab({ data, owned, duplicates, toggle, saveDuplicates }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
-  const q = search.toLowerCase().trim();
+  const [dupModal, setDupModal] = useState(null);
 
-  function teamMatches(team) {
-    if (!q) return true;
-    if (team.name.toLowerCase().includes(q)) return true;
-    return team.stickers.some(c =>
-      c.toLowerCase().includes(q) || (PLAYER_NAMES[c] || '').toLowerCase().includes(q)
-    );
+  const q = normalize(search.trim());
+
+  function openDupModal(code) {
+    setDupModal({ code });
+  }
+
+  async function handleDupSave(code, qty) {
+    await saveDuplicates({ [code]: qty });
+    setDupModal(null);
   }
 
   return (
@@ -250,72 +301,95 @@ function ColecaoTab({ data, owned, duplicates, toggle }) {
         <input
           type="text"
           className="search-input"
-          placeholder="🔍 Buscar por código ou jogador..."
+          placeholder="🔍 Buscar por código, jogador ou seleção..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
       </div>
 
       <div className="grid">
-        <SpecialCard title="✦ Página Inicial / FIFA World Cup History" codes={data.specials} owned={owned} duplicates={duplicates} toggle={toggle} extraClass="intro-card" filter={filter} />
-        <SpecialCard title="🥤 Coca-Cola Bonus Stickers" codes={data.coke} owned={owned} duplicates={duplicates} toggle={toggle} extraClass="coke-card coke-sticker" filter={filter} />
-        {data.teams.map(team =>
-          teamMatches(team)
-            ? <TeamCard key={team.code} team={team} owned={owned} duplicates={duplicates} toggle={toggle} filter={filter} />
-            : null
-        )}
+        <SpecialCard
+          title="✦ Página Inicial / FIFA World Cup History"
+          codes={data.specials}
+          owned={owned}
+          duplicates={duplicates}
+          toggle={toggle}
+          extraClass="intro-card"
+          filter={filter}
+          search={q}
+          cardColor="#B08030"
+          onLongPress={openDupModal}
+        />
+        <SpecialCard
+          title="🥤 Coca-Cola Bonus Stickers"
+          codes={data.coke}
+          owned={owned}
+          duplicates={duplicates}
+          toggle={toggle}
+          extraClass="coke-card"
+          filter={filter}
+          search={q}
+          cardColor="#CC0000"
+          onLongPress={openDupModal}
+        />
+        {data.teams.map(team => (
+          <TeamCard
+            key={team.code}
+            team={team}
+            owned={owned}
+            duplicates={duplicates}
+            toggle={toggle}
+            filter={filter}
+            search={q}
+            onLongPress={openDupModal}
+          />
+        ))}
       </div>
+
+      {dupModal && (
+        <DupModal
+          code={dupModal.code}
+          initial={duplicates[dupModal.code] || 0}
+          onSave={handleDupSave}
+          onClose={() => setDupModal(null)}
+        />
+      )}
     </div>
   );
 }
 
-function SpecialCard({ title, codes, owned, duplicates, toggle, extraClass, filter }) {
+function SpecialCard({ title, codes, owned, duplicates, toggle, extraClass, filter, search, cardColor, onLongPress }) {
   const n = countOwned(codes, owned);
+  const total = codes.length;
+
+  const displayed = search ? codes.filter(c => matchesSearch(c, search)) : codes;
+
+  if (displayed.length === 0) return null;
+  if (!search) {
+    if (filter === 'complete' && n < total) return null;
+    if (filter === 'none' && n > 0) return null;
+    if (filter === 'incomplete' && (n === 0 || n === total)) return null;
+  }
+
   return (
     <div className={`team-card ${extraClass}`}>
       <div className="team-header">
         <span className="team-name">{title}</span>
-        <span className="team-count">{n}/{codes.length}</span>
-      </div>
-      <div className="team-progress">
-        <div className="team-progress-fill" style={{ width: `${(n / codes.length) * 100}%` }} />
-      </div>
-      <div className="stickers">
-        {codes.map((code, idx) => (
-          <StickerBox key={code} code={code} label={idx + 1} owned={owned.has(code)} onToggle={() => toggle(code)} dupQty={duplicates[code] || 0} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TeamCard({ team, owned, duplicates, toggle, filter }) {
-  const n = countOwned(team.stickers, owned);
-  const total = team.stickers.length;
-  if (!shouldShow(filter, n, total)) return null;
-  const complete = n === total;
-  const flag = TEAM_FLAGS[team.code] || '';
-
-  return (
-    <div className={`team-card${complete ? ' team-complete' : ''}`}>
-      <div className="team-header">
-        <span className="team-name">{flag} {team.group} · {team.name}</span>
         <span className="team-count">{n}/{total}</span>
       </div>
       <div className="team-progress">
         <div className="team-progress-fill" style={{ width: `${(n / total) * 100}%` }} />
       </div>
       <div className="stickers">
-        {team.stickers.map((code, idx) => (
+        {displayed.map(code => (
           <StickerBox
             key={code}
             code={code}
-            label={idx + 1}
             owned={owned.has(code)}
             onToggle={() => toggle(code)}
-            foil={idx === 0}
-            special={idx === 12}
             dupQty={duplicates[code] || 0}
+            teamColor={cardColor}
+            onLongPress={() => onLongPress(code)}
           />
         ))}
       </div>
@@ -323,22 +397,108 @@ function TeamCard({ team, owned, duplicates, toggle, filter }) {
   );
 }
 
-function StickerBox({ code, label, owned, onToggle, foil, special, dupQty }) {
+function TeamCard({ team, owned, duplicates, toggle, filter, search, onLongPress }) {
+  const n = countOwned(team.stickers, owned);
+  const total = team.stickers.length;
+  const teamColor = TEAM_COLORS[team.code] || '#1e3055';
+
+  const displayed = search
+    ? team.stickers.filter(c => matchesSearch(c, search, team.name, team.code))
+    : team.stickers;
+
+  if (displayed.length === 0) return null;
+  if (!search && !shouldShow(filter, n, total)) return null;
+
+  const complete = n === total;
+
+  return (
+    <div className={`team-card${complete ? ' team-complete' : ''}`}>
+      <div className="team-header">
+        <span className="team-name">
+          <Flag teamCode={team.code} />
+          {team.group} · {team.name}
+        </span>
+        <span className="team-count">{n}/{total}</span>
+      </div>
+      <div className="team-progress">
+        <div className="team-progress-fill" style={{ width: `${(n / total) * 100}%` }} />
+      </div>
+      <div className="stickers">
+        {displayed.map(code => {
+          const posIdx = team.stickers.indexOf(code);
+          return (
+            <StickerBox
+              key={code}
+              code={code}
+              owned={owned.has(code)}
+              onToggle={() => toggle(code)}
+              foil={posIdx === 0}
+              special={posIdx === 12}
+              dupQty={duplicates[code] || 0}
+              teamColor={teamColor}
+              onLongPress={() => onLongPress(code)}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StickerBox({ code, owned, onToggle, foil, special, dupQty, teamColor, onLongPress }) {
+  const timerRef = useRef(null);
+  const longFiredRef = useRef(false);
+  const startPos = useRef({ x: 0, y: 0 });
+
+  function handlePointerDown(e) {
+    startPos.current = { x: e.clientX, y: e.clientY };
+    longFiredRef.current = false;
+    timerRef.current = setTimeout(() => {
+      longFiredRef.current = true;
+      onLongPress?.();
+    }, 600);
+  }
+
+  function handlePointerUp(e) {
+    clearTimeout(timerRef.current);
+    const dx = Math.abs(e.clientX - startPos.current.x);
+    const dy = Math.abs(e.clientY - startPos.current.y);
+    if (!longFiredRef.current && dx < 10 && dy < 10) {
+      onToggle();
+    }
+    longFiredRef.current = false;
+  }
+
+  function cancel() {
+    clearTimeout(timerRef.current);
+    longFiredRef.current = false;
+  }
+
   const name = PLAYER_NAMES[code];
+  const m = code.match(/^([A-Z]+)(\d+)$/);
+  const prefix = m ? m[1] : '';
+  const num = m ? m[2] : code;
   const tooltip = [code, name && `· ${name}`, dupQty > 0 && `(${dupQty}x repetida)`].filter(Boolean).join(' ');
 
   return (
-    <label
+    <div
       className={`sticker-label${foil ? ' foil-sticker' : ''}${special ? ' special-sticker' : ''}${owned ? ' is-checked' : ''}`}
       title={tooltip}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={cancel}
+      onPointerCancel={cancel}
+      style={{ '--tc': teamColor || '#1e3055' }}
     >
-      <input type="checkbox" checked={owned} onChange={onToggle} />
-      <div className="sticker-box" />
-      <span className="sticker-num">
-        {label}
-        {dupQty > 0 && <span className="dup-badge">{dupQty}</span>}
-      </span>
-    </label>
+      <div className="sticker-box">
+        <span className="sticker-pos">
+          <span className="sticker-prefix">{prefix}</span>
+          <span className="sticker-num-big">{num}</span>
+        </span>
+        {dupQty > 0 && <span className="dup-corner">{dupQty}x</span>}
+        {name && <span className="sticker-name">{name}</span>}
+      </div>
+    </div>
   );
 }
 
@@ -350,6 +510,7 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
   const [feedback, setFeedback] = useState('');
   const [copied, setCopied] = useState('');
 
+  const dupCodes = Object.keys(duplicates);
   const dupTotal = Object.values(duplicates).reduce((s, q) => s + q, 0);
 
   async function markDuplicates() {
@@ -391,7 +552,7 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
           className="trocas-textarea"
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder={"Pan: 9(2x), Bra: 13(1x), MEX 5..."}
+          placeholder="Pan: 9(2x), Bra: 13(1x), MEX 5..."
           rows={4}
         />
         {feedback && <p className="trocas-feedback">{feedback}</p>}
@@ -402,17 +563,19 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
 
       <section className="trocas-section">
         <div className="trocas-section-header">
-          <h3>🔄 Minhas repetidas <span className="trocas-badge">{dupTotal} cópia(s) extra(s)</span></h3>
-          {dupTotal > 0 && <button className="trocas-danger-btn" onClick={clearDuplicates}>Zerar todas</button>}
+          <h3>🔄 Minhas repetidas <span className="trocas-badge">{dupCodes.length} figurinha(s) / {dupTotal} cópia(s)</span></h3>
+          {dupCodes.length > 0 && <button className="trocas-danger-btn" onClick={clearDuplicates}>Zerar todas</button>}
         </div>
-        {!dupTotal ? (
+        {!dupCodes.length ? (
           <p className="trocas-empty">Nenhuma repetida cadastrada.</p>
         ) : (
           <>
             <div className="trocas-codes-display">
               {dupGroups.map(g => (
                 <div key={g.key} className="trocas-group">
-                  <span className="trocas-group-label">{g.flag} {g.label}:</span>
+                  <span className="trocas-group-label">
+                    <GroupFlag groupKey={g.key} fallback={g.flag} /> {g.label}:
+                  </span>
                   <span className="trocas-group-codes">
                     {g.codes.map(c => {
                       const n = c.replace(g.key, '');
@@ -441,7 +604,9 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
             <div className="trocas-codes-display">
               {misGroups.map(g => (
                 <div key={g.key} className="trocas-group">
-                  <span className="trocas-group-label">{g.flag} {g.label}:</span>
+                  <span className="trocas-group-label">
+                    <GroupFlag groupKey={g.key} fallback={g.flag} /> {g.label}:
+                  </span>
                   <span className="trocas-group-codes">
                     {g.codes.map(c => (
                       <span key={c} className="trocas-code">{c.replace(g.key, '')}</span>
@@ -541,7 +706,9 @@ function CompararTab({ data, owned, duplicates, allCodes }) {
             <div className="trocas-codes-display">
               {resultGroups.map(g => (
                 <div key={g.key} className="trocas-group">
-                  <span className="trocas-group-label">{g.flag} {g.label}:</span>
+                  <span className="trocas-group-label">
+                    <GroupFlag groupKey={g.key} fallback={g.flag} /> {g.label}:
+                  </span>
                   <span className="trocas-group-codes">
                     {g.codes.map(c => (
                       <span key={c} className="trocas-code">{c.replace(g.key, '')}</span>
