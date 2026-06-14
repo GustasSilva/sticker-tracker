@@ -654,7 +654,17 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .hist-entry:hover { background: rgba(255,255,255,0.02); }
 .hist-entry:last-child { border-bottom: none; }
 
-.hist-batch { background: rgba(255,255,255,0.015); }
+.hist-batch { background: rgba(255,255,255,0.015); flex-direction: column; align-items: stretch; padding: 0; }
+.hist-batch-main { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+.hist-batch-right { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.hist-expand-btn { background: none; border: 1px solid #2a4070; border-radius: 4px; color: #7fa8d4; font-size: 0.72rem; padding: 1px 6px; cursor: pointer; line-height: 1.4; }
+.hist-expand-btn:hover { background: rgba(127,168,212,0.12); }
+.hist-expand-body { border-top: 1px solid #1a2f50; padding: 6px 12px 8px; display: flex; flex-direction: column; gap: 4px; }
+.hist-expand-row { display: flex; align-items: baseline; gap: 6px; font-size: 0.72rem; }
+.hist-expand-flag { font-size: 0.85rem; flex-shrink: 0; }
+.hist-expand-flag-txt { font-size: 0.72rem; color: #7fa8d4; flex-shrink: 0; }
+.hist-expand-team { color: #7fa8d4; font-weight: 600; min-width: 36px; flex-shrink: 0; }
+.hist-expand-nums { color: #9bb8d4; word-break: break-all; line-height: 1.5; }
 
 /* dots */
 .hist-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -667,9 +677,9 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 
 .hist-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
 .hist-code { font-size: 0.78rem; font-weight: 600; color: #e8eaf0; }
-.hist-name { font-size: 0.68rem; color: #445; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hist-action-txt { font-size: 0.78rem; color: #aab; }
-.hist-detail { font-size: 0.68rem; color: #334; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-name { font-size: 0.68rem; color: #6a7e9a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-action-txt { font-size: 0.78rem; color: #c8d0dc; }
+.hist-detail { font-size: 0.68rem; color: #6a7e9a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .hist-badge {
   font-size: 0.68rem; font-weight: 600; border-radius: 5px;

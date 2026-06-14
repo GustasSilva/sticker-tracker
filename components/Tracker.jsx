@@ -344,7 +344,8 @@ export default function Tracker({ data, userEmail }) {
       const [code, qty] = entries[0];
       pushHist({ type: 'dup', code, ...getTeamInfo(code, data), qty });
     } else if (entries.length > 1) {
-      pushHist({ id: 'bdp_' + Date.now(), type: 'batch_dup', count: entries.length, teamSummary: teamSummary(entries.map(([c]) => c), data) });
+      const codes = entries.map(([c]) => c);
+      pushHist({ id: 'bdp_' + Date.now(), type: 'batch_dup', count: entries.length, teamSummary: teamSummary(codes, data), codes });
     }
     await supabase.from('user_progress').upsert(
       entries.map(([code, qty]) => ({
@@ -364,7 +365,7 @@ export default function Tracker({ data, userEmail }) {
     if (toAdd.length === 1) {
       pushHist({ type: 'mark', code: toAdd[0], ...getTeamInfo(toAdd[0], data) });
     } else {
-      pushHist({ id: 'bm_' + Date.now(), type: 'batch_mark', count: toAdd.length, teamSummary: teamSummary(toAdd, data) });
+      pushHist({ id: 'bm_' + Date.now(), type: 'batch_mark', count: toAdd.length, teamSummary: teamSummary(toAdd, data), codes: toAdd });
     }
     const userId = await getUserId();
     if (!userId) return toAdd.length;
@@ -433,7 +434,7 @@ export default function Tracker({ data, userEmail }) {
         🕐
       </button>
 
-      {historyOpen && <HistoryDrawer history={history} onClose={() => setHistoryOpen(false)} />}
+      {historyOpen && <HistoryDrawer history={history} data={data} onClose={() => setHistoryOpen(false)} />}
     </div>
   );
 }
@@ -1097,7 +1098,7 @@ function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates })
 
 // ─── History Drawer ───────────────────────────────────────────────────────────
 
-function HistoryDrawer({ history, onClose }) {
+function HistoryDrawer({ history, data, onClose }) {
   const groups = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const yesterday = new Date(today.getTime() - 86400000);
@@ -1127,7 +1128,7 @@ function HistoryDrawer({ history, onClose }) {
             : groups.map(g => (
                 <div key={g.label} className="hist-date-group">
                   <div className="hist-date-label">{g.label}</div>
-                  {g.entries.map(e => <HistEntry key={e.id} entry={e} />)}
+                  {g.entries.map(e => <HistEntry key={e.id} entry={e} data={data} />)}
                 </div>
               ))
           }
@@ -1137,23 +1138,50 @@ function HistoryDrawer({ history, onClose }) {
   );
 }
 
-function HistEntry({ entry }) {
+function HistEntry({ entry, data }) {
+  const [expanded, setExpanded] = useState(false);
   const ago  = formatAgo(entry.ts);
   const name = entry.code ? (PLAYER_NAMES[entry.code] || '') : '';
   const iso  = entry.teamCode ? TEAM_ISO[entry.teamCode] : null;
 
   if (entry.type === 'batch_mark' || entry.type === 'batch_dup') {
-    const isMark = entry.type === 'batch_mark';
+    const isMark   = entry.type === 'batch_mark';
+    const hasDetail = entry.codes?.length > 0 && data;
+    const expandGroups = expanded && hasDetail ? groupByTeam(entry.codes, data) : [];
+
     return (
-      <div className="hist-entry hist-batch">
-        <span className={`hist-dot ${isMark ? 'dot-green' : 'dot-amber'}`} />
-        <div className="hist-info">
-          <span className="hist-action-txt">
-            {isMark ? `${entry.count} coladas importadas` : `${entry.count} repetidas importadas`}
-          </span>
-          <span className="hist-detail">{entry.teamSummary}</span>
+      <div className={`hist-entry hist-batch${expanded ? ' is-expanded' : ''}`}>
+        <div className="hist-batch-main">
+          <span className={`hist-dot ${isMark ? 'dot-green' : 'dot-amber'}`} />
+          <div className="hist-info">
+            <span className="hist-action-txt">
+              {isMark ? `${entry.count} coladas importadas` : `${entry.count} repetidas importadas`}
+            </span>
+            <span className="hist-detail">{entry.teamSummary}</span>
+          </div>
+          <div className="hist-batch-right">
+            {hasDetail && (
+              <button className="hist-expand-btn" onClick={() => setExpanded(x => !x)}>
+                {expanded ? '▴' : '▾'}
+              </button>
+            )}
+            <span className="hist-ago">{ago}</span>
+          </div>
         </div>
-        <span className="hist-ago">{ago}</span>
+        {expanded && expandGroups.length > 0 && (
+          <div className="hist-expand-body">
+            {expandGroups.map(g => (
+              <div key={g.key} className="hist-expand-row">
+                {TEAM_ISO[g.key]
+                  ? <span className={`fi fi-${TEAM_ISO[g.key]} hist-expand-flag`} />
+                  : <span className="hist-expand-flag-txt">{g.flag || g.key}</span>
+                }
+                <span className="hist-expand-team">{g.key}</span>
+                <span className="hist-expand-nums">{g.codes.map(codeNum).join(' · ')}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
