@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: '⚽ Panini WC2026 – Sticker Tracker',
+  title: 'Panini WC2026 – Sticker Tracker',
   description: 'Controle de figurinhas da Copa 2026',
 };
 

@@ -9,22 +9,28 @@ body {
 /* ---- App header ---- */
 .app-header-wrap {
   position: relative;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  text-align: center;
   margin-bottom: 6px;
+  /* min padding so content doesn't slide under the corner on narrow viewports */
+  padding: 0 170px;
 }
-.app-title-area { text-align: center; flex: 1; }
+.app-title-area { text-align: center; }
 h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.4); margin-bottom: 4px; }
 #summary { text-align: center; font-size: 0.92rem; color: #aab; }
+
+/* Corner: absolutely positioned so it never affects centering */
 .app-user-corner {
-  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
-  padding: 4px 0;
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
 }
 .user-email-small {
   font-size: 0.68rem; color: #445; max-width: 160px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  text-align: right;
 }
 .link-btn { background: none; border: none; color: #556; cursor: pointer; font-size: 0.72rem; padding: 0; }
 .link-btn:hover { color: #ffd700; text-decoration: underline; }
@@ -32,10 +38,17 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 #total-bar-wrap { max-width: 600px; margin: 8px auto 24px; background: #1e2d4a; border-radius: 8px; height: 14px; overflow: hidden; }
 #total-bar { height: 100%; background: linear-gradient(90deg, #ffd700, #ff8c00); border-radius: 8px; transition: width 0.3s; }
 
+/* On narrow screens collapse the corner into the flow */
 @media (max-width: 600px) {
-  .app-header-wrap { flex-direction: column; align-items: center; }
-  .app-user-corner { flex-direction: row; align-items: center; gap: 6px; margin-top: 4px; }
-  .user-email-small { max-width: 180px; }
+  .app-header-wrap { padding: 0; }
+  .app-user-corner {
+    position: static;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
 }
 
 .loading { text-align: center; padding: 40px; color: #aab; }
