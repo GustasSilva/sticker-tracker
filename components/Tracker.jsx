@@ -971,7 +971,7 @@ function CompararTab({ data, owned, duplicates, allCodes }) {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-function ImportPreview({ text, allCodes, owned, type }) {
+function ImportPreview({ text, allCodes, owned, duplicates, type }) {
   return useMemo(() => {
     if (!text.trim()) return null;
     const parsed  = parseStickersText(text);
@@ -986,7 +986,11 @@ function ImportPreview({ text, allCodes, owned, type }) {
         ? `${newOnes} nova${newOnes > 1 ? 's' : ''} para marcar de ${valid.length} identificadas`
         : `Todas as ${valid.length} já estão coladas`;
     } else if (type === 'dup') {
-      msg = `${valid.length} figurinha${valid.length > 1 ? 's' : ''} com repetidas identificadas`;
+      const totalCopies = valid.reduce((s, c) => s + (parsed[c] || 1), 0);
+      const updating    = duplicates ? valid.filter(c => (duplicates[c] || 0) > 0).length : 0;
+      const pl = n => n !== 1;
+      msg = `${valid.length} figurinha${pl(valid.length) ? 's' : ''} · ${totalCopies} repetida${pl(totalCopies) ? 's' : ''} no total`;
+      if (updating > 0) msg += ` · ${updating} já cadastrada${pl(updating) ? 's' : ''} (serão atualizadas)`;
     } else {
       const misSet  = new Set(valid);
       const toMark  = [...allCodes].filter(c => !misSet.has(c) && !owned.has(c)).length;
@@ -998,7 +1002,7 @@ function ImportPreview({ text, allCodes, owned, type }) {
         📋 {msg}{invalid > 0 ? ` · ${invalid} entrada${invalid > 1 ? 's' : ''} inválida${invalid > 1 ? 's' : ''} ignorada${invalid > 1 ? 's' : ''}` : ''}
       </p>
     );
-  }, [text, allCodes, owned, type]);
+  }, [text, allCodes, owned, duplicates, type]);
 }
 
 function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates }) {
@@ -1071,11 +1075,11 @@ function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates })
       <section className="trocas-section">
         <h3>🔄 Importar repetidas</h3>
         <p className="trocas-hint">Figurinhas com repetidas são automaticamente marcadas como coladas.</p>
-        <p className="trocas-hint"><em>Formato:</em> <code>BRA 3(2x)</code> ou <code>MEX: 5 6(3x)</code></p>
+        <p className="trocas-hint"><em>Formato:</em> <code>BRA 3(2x)</code> ou <code>MEX: 5 6(3x)</code> · Repetir o número também funciona: <code>IRN 7 7 14</code></p>
         <textarea className="trocas-textarea" value={dupInput}
           onChange={e => { setDupInput(e.target.value); setMsg('dup', ''); }}
-          rows={4} placeholder="BRA 3(2x), MEX: 5 6(3x)..." />
-        <ImportPreview text={dupInput} allCodes={allCodes} owned={owned} type="dup" />
+          rows={4} placeholder="BRA 3(2x), MEX: 5 6(3x), IRN 7 7 14..." />
+        <ImportPreview text={dupInput} allCodes={allCodes} owned={owned} duplicates={duplicates} type="dup" />
         {msgs.dup && <p className="trocas-feedback">{msgs.dup}</p>}
         <button className="trocas-primary-btn" onClick={handleImportDup}
           disabled={busy === 'dup' || !dupInput.trim()}>
