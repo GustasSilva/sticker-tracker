@@ -394,6 +394,7 @@ export default function Tracker({ data, userEmail }) {
   if (loading) return <div className="loading">Carregando coleção...</div>;
 
   const pct = Math.round((owned.size / totalAll) * 100);
+  const totalDups = Object.values(duplicates).reduce((s, q) => s + q, 0);
 
   return (
     <div>
@@ -405,6 +406,10 @@ export default function Tracker({ data, userEmail }) {
             {' '}figurinhas
             <span className="sum-sep">·</span>
             <span className="sum-pct">{pct}%</span>
+            {totalDups > 0 && <>
+              <span className="sum-sep">·</span>
+              <span className="sum-dups">{totalDups} rep.</span>
+            </>}
           </div>
         </div>
         <div className="app-user-corner">
