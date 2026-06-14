@@ -582,6 +582,105 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 }
 .match-hint-box strong { color: #aab; }
 
+/* ---- History FAB ---- */
+.history-fab {
+  position: fixed; bottom: 24px; right: 22px; z-index: 500;
+  background: #132038; border: 1px solid #2a4070;
+  border-radius: 50%; width: 48px; height: 48px;
+  font-size: 1.3rem; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.history-fab:hover { border-color: #ffd700; background: #1a2d4e; transform: scale(1.08); }
+
+/* ---- History Drawer ---- */
+.drawer-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  z-index: 900; backdrop-filter: blur(2px);
+}
+
+@keyframes slideUp   { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes slideInR  { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+.history-drawer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  max-height: 78vh; background: #0c1826;
+  border-radius: 18px 18px 0 0; border-top: 1px solid #1e3055;
+  z-index: 901; display: flex; flex-direction: column;
+  animation: slideUp 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (min-width: 700px) {
+  .history-drawer {
+    top: 0; bottom: 0; right: 0; left: auto;
+    width: 340px; max-height: none; border-radius: 0;
+    border-top: none; border-left: 1px solid #1e3055;
+    animation: slideInR 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
+
+.drawer-handle {
+  width: 36px; height: 4px; background: #1e3055; border-radius: 2px;
+  margin: 10px auto 0; flex-shrink: 0;
+}
+@media (min-width: 700px) { .drawer-handle { display: none; } }
+
+.drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px 12px; border-bottom: 1px solid #1a2d4e; flex-shrink: 0;
+}
+.drawer-title { font-size: 0.92rem; font-weight: 700; color: #e8eaf0; }
+.drawer-close {
+  background: none; border: none; color: #445; font-size: 1.4rem;
+  cursor: pointer; line-height: 1; padding: 0; transition: color 0.15s;
+}
+.drawer-close:hover { color: #e8eaf0; }
+
+.drawer-body { overflow-y: auto; flex: 1; padding: 8px 0 32px; }
+.drawer-empty { color: #334; font-size: 0.85rem; text-align: center; padding: 48px 20px; }
+
+.hist-date-group { margin-bottom: 4px; }
+.hist-date-label {
+  font-size: 0.6rem; font-weight: 700; color: #2a3a58; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 10px 20px 4px;
+}
+
+.hist-entry {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 20px; border-bottom: 1px solid #0d1428;
+  transition: background 0.1s;
+}
+.hist-entry:hover { background: rgba(255,255,255,0.02); }
+.hist-entry:last-child { border-bottom: none; }
+
+.hist-batch { background: rgba(255,255,255,0.015); }
+
+/* dots */
+.hist-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-green { background: #00c853; box-shadow: 0 0 5px rgba(0,200,83,0.4); }
+.dot-amber { background: #ffb300; box-shadow: 0 0 5px rgba(255,179,0,0.4); }
+.dot-red   { background: #ff5252; box-shadow: 0 0 5px rgba(255,82,82,0.4); }
+
+.hist-flag { width: 1.15em; height: 0.82em; border-radius: 1px; flex-shrink: 0; }
+.hist-flag-placeholder { font-size: 0.85rem; line-height: 1; flex-shrink: 0; }
+
+.hist-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
+.hist-code { font-size: 0.78rem; font-weight: 600; color: #e8eaf0; }
+.hist-name { font-size: 0.68rem; color: #445; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-action-txt { font-size: 0.78rem; color: #aab; }
+.hist-detail { font-size: 0.68rem; color: #334; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.hist-badge {
+  font-size: 0.68rem; font-weight: 600; border-radius: 5px;
+  padding: 2px 7px; white-space: nowrap; flex-shrink: 0;
+}
+.badge-green { background: rgba(0,200,83,0.12);  color: #00c853; }
+.badge-amber { background: rgba(255,179,0,0.12);  color: #ffb300; }
+.badge-red   { background: rgba(255,82,82,0.12);   color: #ff5252; }
+
+.hist-ago { font-size: 0.64rem; color: #2a3a58; white-space: nowrap; flex-shrink: 0; }
+
 @media (max-width: 540px) {
   .stickers { grid-template-columns: repeat(4, 1fr); }
   .tab-btn { font-size: 0.72rem; padding: 8px 4px; }

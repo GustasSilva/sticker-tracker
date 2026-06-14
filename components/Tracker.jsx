@@ -83,6 +83,51 @@ function generateMissingText(missingCodes, data) {
 
 function countOwned(codes, owned) { return codes.filter(c => owned.has(c)).length; }
 
+function getTeamInfo(code, data) {
+  if (code === '00') return { teamCode: 'FWC', teamName: 'Copa do Mundo 2026' };
+  const m = code.match(/^([A-Z]+)\d+$/);
+  if (!m) return { teamCode: '', teamName: code };
+  const prefix = m[1];
+  if (prefix === 'FWC') return { teamCode: 'FWC', teamName: 'Copa do Mundo 2026' };
+  if (prefix === 'CC')  return { teamCode: 'CC',  teamName: 'Coca-Cola Stickers' };
+  const team = data.teams.find(t => t.code === prefix);
+  return team ? { teamCode: team.code, teamName: team.name } : { teamCode: prefix, teamName: prefix };
+}
+
+function formatAgo(ts) {
+  const diff = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(diff / 60000);
+  const h = Math.floor(diff / 3600000);
+  const d = Math.floor(diff / 86400000);
+  if (m < 1)  return 'agora';
+  if (m < 60) return `há ${m}min`;
+  if (h < 24) return `há ${h}h`;
+  if (d === 1) return 'ontem';
+  return `há ${d}d`;
+}
+
+function buildHistEntry(row, data) {
+  return {
+    id: row.sticker_code + '_' + row.updated_at,
+    ts: new Date(row.updated_at),
+    type: !row.owned ? 'unmark' : (row.duplicates > 0 ? 'dup' : 'mark'),
+    code: row.sticker_code,
+    ...getTeamInfo(row.sticker_code, data),
+    qty: row.duplicates || 0,
+  };
+}
+
+function teamSummary(codes, data) {
+  const counts = {};
+  codes.forEach(code => {
+    const { teamCode } = getTeamInfo(code, data);
+    if (teamCode) counts[teamCode] = (counts[teamCode] || 0) + 1;
+  });
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const extra = Object.keys(counts).length - top.length;
+  return top.map(([tc, n]) => `${tc}(${n})`).join(', ') + (extra > 0 ? `… +${extra}` : '');
+}
+
 function shouldShow(filter, n, total) {
   if (filter === 'incomplete') return n > 0 && n < total;
   if (filter === 'complete') return n === total;
@@ -175,10 +220,16 @@ function DupModal({ code, teamCode, teamName, totalInitial, onSave, onClose }) {
 
 export default function Tracker({ data, userEmail }) {
   const supabase = useMemo(() => createClient(), []);
-  const [owned,      setOwned]      = useState(new Set());
-  const [duplicates, setDuplicates] = useState({});
-  const [loading,    setLoading]    = useState(true);
-  const [tab,        setTab]        = useState('colecao');
+  const [owned,        setOwned]        = useState(new Set());
+  const [duplicates,   setDuplicates]   = useState({});
+  const [loading,      setLoading]      = useState(true);
+  const [tab,          setTab]          = useState('colecao');
+  const [history,      setHistory]      = useState([]);
+  const [historyOpen,  setHistoryOpen]  = useState(false);
+
+  function pushHist(entry) {
+    setHistory(h => [{ ...entry, id: entry.id ?? (Date.now() + Math.random()), ts: entry.ts ?? new Date() }, ...h.slice(0, 199)]);
+  }
 
   const allCodes = useMemo(() => {
     const s = new Set();
@@ -201,34 +252,41 @@ export default function Tracker({ data, userEmail }) {
   useEffect(() => {
     let active = true;
     async function load() {
+      const [mainRes, histRes] = await Promise.all([
+        supabase.from('user_progress').select('sticker_code, owned, duplicates').or('owned.eq.true,duplicates.gt.0'),
+        supabase.from('user_progress').select('sticker_code, owned, duplicates, updated_at').order('updated_at', { ascending: false }).limit(60),
+      ]);
+
       let rows;
-      const { data: d, error } = await supabase
-        .from('user_progress')
-        .select('sticker_code, owned, duplicates')
-        .or('owned.eq.true,duplicates.gt.0');
-      if (error) {
-        const { data: fallback } = await supabase
-          .from('user_progress').select('sticker_code, owned').eq('owned', true);
+      if (mainRes.error) {
+        const { data: fallback } = await supabase.from('user_progress').select('sticker_code, owned').eq('owned', true);
         rows = fallback;
       } else {
-        rows = d;
+        rows = mainRes.data;
       }
+
       if (!active) return;
+
       if (rows) {
         const ownedSet = new Set();
         const dupMap   = {};
         for (const r of rows) {
-          if (r.owned)        ownedSet.add(r.sticker_code);
+          if (r.owned)          ownedSet.add(r.sticker_code);
           if (r.duplicates > 0) dupMap[r.sticker_code] = r.duplicates;
         }
         setOwned(ownedSet);
         setDuplicates(dupMap);
       }
+
+      if (histRes.data) {
+        setHistory(histRes.data.map(row => buildHistEntry(row, data)));
+      }
+
       setLoading(false);
     }
     load();
     return () => { active = false; };
-  }, [supabase]);
+  }, [supabase, data]);
 
   const getUserId = useCallback(async () => {
     const { data: d } = await supabase.auth.getUser();
@@ -240,6 +298,7 @@ export default function Tracker({ data, userEmail }) {
     const was  = next.has(code);
     if (was) next.delete(code); else next.add(code);
     setOwned(next);
+    pushHist({ type: was ? 'unmark' : 'mark', code, ...getTeamInfo(code, data) });
     const userId = await getUserId();
     if (!userId) return;
     await supabase.from('user_progress').upsert(
@@ -258,6 +317,8 @@ export default function Tracker({ data, userEmail }) {
     if (dups <= 0) delete newDups[code]; else newDups[code] = dups;
     setOwned(newOwned);
     setDuplicates(newDups);
+    const histType = totalCount === 0 ? 'unmark' : totalCount === 1 ? 'mark' : 'dup';
+    pushHist({ type: histType, code, ...getTeamInfo(code, data), qty: dups });
     const userId = await getUserId();
     if (!userId) return;
     await supabase.from('user_progress').upsert(
@@ -277,8 +338,16 @@ export default function Tracker({ data, userEmail }) {
     }
     setDuplicates(newDups);
     setOwned(newOwned);
+    // push history
+    const entries = Object.entries(updates);
+    if (entries.length === 1) {
+      const [code, qty] = entries[0];
+      pushHist({ type: 'dup', code, ...getTeamInfo(code, data), qty });
+    } else if (entries.length > 1) {
+      pushHist({ id: 'bdp_' + Date.now(), type: 'batch_dup', count: entries.length, teamSummary: teamSummary(entries.map(([c]) => c), data) });
+    }
     await supabase.from('user_progress').upsert(
-      Object.entries(updates).map(([code, qty]) => ({
+      entries.map(([code, qty]) => ({
         user_id: userId, sticker_code: code,
         owned: newOwned.has(code), duplicates: Math.max(0, qty), updated_at: new Date().toISOString(),
       })),
@@ -292,6 +361,11 @@ export default function Tracker({ data, userEmail }) {
     const newOwned = new Set(owned);
     toAdd.forEach(c => newOwned.add(c));
     setOwned(newOwned);
+    if (toAdd.length === 1) {
+      pushHist({ type: 'mark', code: toAdd[0], ...getTeamInfo(toAdd[0], data) });
+    } else {
+      pushHist({ id: 'bm_' + Date.now(), type: 'batch_mark', count: toAdd.length, teamSummary: teamSummary(toAdd, data) });
+    }
     const userId = await getUserId();
     if (!userId) return toAdd.length;
     await supabase.from('user_progress').upsert(
@@ -353,6 +427,13 @@ export default function Tracker({ data, userEmail }) {
       {tab === 'trocas'   && <TrocasTab  data={data} owned={owned} duplicates={duplicates} missingCodes={missingCodes} allCodes={allCodes} saveDuplicates={saveDuplicates} clearDuplicates={clearDuplicates} />}
       {tab === 'comparar' && <CompararTab data={data} owned={owned} duplicates={duplicates} allCodes={allCodes} />}
       {tab === 'config'   && <ConfigTab   allCodes={allCodes} owned={owned} duplicates={duplicates} importOwned={importOwned} saveDuplicates={saveDuplicates} />}
+
+      {/* floating history button */}
+      <button className="history-fab" onClick={() => setHistoryOpen(true)} title="Histórico de alterações">
+        🕐
+      </button>
+
+      {historyOpen && <HistoryDrawer history={history} onClose={() => setHistoryOpen(false)} />}
     </div>
   );
 }
@@ -1010,6 +1091,90 @@ function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates })
           {busy === 'mis' ? 'Importando...' : '🚀 Marcar tudo exceto faltantes'}
         </button>
       </section>
+    </div>
+  );
+}
+
+// ─── History Drawer ───────────────────────────────────────────────────────────
+
+function HistoryDrawer({ history, onClose }) {
+  const groups = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today.getTime() - 86400000);
+    const map = new Map();
+    for (const e of history) {
+      const d = new Date(e.ts); d.setHours(0, 0, 0, 0);
+      const label = d >= today ? 'HOJE' : d >= yesterday ? 'ONTEM'
+        : `HÁ ${Math.round((today - d) / 86400000)} DIAS`;
+      if (!map.has(label)) map.set(label, []);
+      map.get(label).push(e);
+    }
+    return [...map.entries()].map(([label, entries]) => ({ label, entries }));
+  }, [history]);
+
+  return (
+    <>
+      <div className="drawer-backdrop" onClick={onClose} />
+      <div className="history-drawer">
+        <div className="drawer-handle" />
+        <div className="drawer-header">
+          <span className="drawer-title">🕐 Histórico</span>
+          <button className="drawer-close" onClick={onClose}>×</button>
+        </div>
+        <div className="drawer-body">
+          {history.length === 0
+            ? <p className="drawer-empty">Nenhuma alteração registrada ainda.</p>
+            : groups.map(g => (
+                <div key={g.label} className="hist-date-group">
+                  <div className="hist-date-label">{g.label}</div>
+                  {g.entries.map(e => <HistEntry key={e.id} entry={e} />)}
+                </div>
+              ))
+          }
+        </div>
+      </div>
+    </>
+  );
+}
+
+function HistEntry({ entry }) {
+  const ago  = formatAgo(entry.ts);
+  const name = entry.code ? (PLAYER_NAMES[entry.code] || '') : '';
+  const iso  = entry.teamCode ? TEAM_ISO[entry.teamCode] : null;
+
+  if (entry.type === 'batch_mark' || entry.type === 'batch_dup') {
+    const isMark = entry.type === 'batch_mark';
+    return (
+      <div className="hist-entry hist-batch">
+        <span className={`hist-dot ${isMark ? 'dot-green' : 'dot-amber'}`} />
+        <div className="hist-info">
+          <span className="hist-action-txt">
+            {isMark ? `${entry.count} coladas importadas` : `${entry.count} repetidas importadas`}
+          </span>
+          <span className="hist-detail">{entry.teamSummary}</span>
+        </div>
+        <span className="hist-ago">{ago}</span>
+      </div>
+    );
+  }
+
+  const dotCls    = entry.type === 'mark' ? 'dot-green' : entry.type === 'unmark' ? 'dot-red' : 'dot-amber';
+  const badgeCls  = entry.type === 'mark' ? 'badge-green' : entry.type === 'unmark' ? 'badge-red' : 'badge-amber';
+  const actionLbl = entry.type === 'mark' ? 'Colada' : entry.type === 'unmark' ? 'Desmarcada' : `+${entry.qty} rep.`;
+
+  return (
+    <div className="hist-entry">
+      <span className={`hist-dot ${dotCls}`} />
+      {iso
+        ? <span className={`fi fi-${iso} hist-flag`} />
+        : <span className="hist-flag-placeholder">{entry.teamCode === 'FWC' ? '🏆' : '🥤'}</span>
+      }
+      <div className="hist-info">
+        <span className="hist-code">{entry.code}</span>
+        {name && <span className="hist-name">{name}</span>}
+      </div>
+      <span className={`hist-badge ${badgeCls}`}>{actionLbl}</span>
+      <span className="hist-ago">{ago}</span>
     </div>
   );
 }
