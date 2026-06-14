@@ -325,7 +325,12 @@ export default function Tracker({ data, userEmail }) {
       <div className="app-header-wrap">
         <div className="app-title-area">
           <h1>⚽ Panini FIFA World Cup 2026</h1>
-          <div id="summary">{owned.size}/{totalAll} figurinhas · {pct}%</div>
+          <div id="summary">
+            <span className="sum-count"><strong>{owned.size}</strong>/{totalAll}</span>
+            {' '}figurinhas
+            <span className="sum-sep">·</span>
+            <span className="sum-pct">{pct}%</span>
+          </div>
         </div>
         <div className="app-user-corner">
           <span className="user-email-small">{userEmail}</span>

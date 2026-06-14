@@ -16,7 +16,18 @@ body {
 }
 .app-title-area { text-align: center; }
 h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.4); margin-bottom: 4px; }
-#summary { text-align: center; font-size: 0.92rem; color: #aab; }
+#summary {
+  display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
+  font-size: 0.88rem; color: #556; letter-spacing: 0.01em;
+}
+.sum-count { color: #aab; font-variant-numeric: tabular-nums; }
+.sum-count strong { color: #e8eaf0; font-weight: 600; font-size: 0.95rem; }
+.sum-sep { color: #2a3a58; font-size: 0.7rem; }
+.sum-pct {
+  background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.22);
+  color: #ffd700; border-radius: 12px; padding: 1px 10px;
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em;
+}
 
 /* Corner: absolutely positioned so it never affects centering */
 .app-user-corner {
