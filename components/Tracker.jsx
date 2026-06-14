@@ -322,13 +322,17 @@ export default function Tracker({ data, userEmail }) {
 
   return (
     <div>
-      <h1>⚽ Panini FIFA World Cup 2026</h1>
-      <div id="summary">
-        {owned.size}/{totalAll} figurinhas ({pct}%) — {userEmail}
-        {' · '}
-        <form action="/logout" method="post" style={{ display: 'inline' }}>
-          <button type="submit" className="link-btn">Sair</button>
-        </form>
+      <div className="app-header-wrap">
+        <div className="app-title-area">
+          <h1>⚽ Panini FIFA World Cup 2026</h1>
+          <div id="summary">{owned.size}/{totalAll} figurinhas · {pct}%</div>
+        </div>
+        <div className="app-user-corner">
+          <span className="user-email-small">{userEmail}</span>
+          <form action="/logout" method="post">
+            <button type="submit" className="link-btn">Sair</button>
+          </form>
+        </div>
       </div>
       <div id="total-bar-wrap">
         <div id="total-bar" style={{ width: `${pct}%` }} />
@@ -466,7 +470,7 @@ function SpecialCard({ title, codes, owned, duplicates, toggle, extraClass, filt
       <div className="team-header" onClick={onToggleCollapse} style={{ cursor: 'pointer' }}>
         <span className="team-header-caret">{collapsed ? '▸' : '▾'}</span>
         <span className="team-name">{title}</span>
-        <span className="team-count">{n}/{total}</span>
+        <span className="team-count">{n}/{total}<span className="team-pct">{Math.round(n/total*100)}%</span></span>
       </div>
       <div className="team-progress">
         <div className="team-progress-fill" style={{ width: `${(n / total) * 100}%` }} />
@@ -506,7 +510,7 @@ function TeamCard({ team, owned, duplicates, toggle, filter, search, collapsed, 
           <Flag teamCode={team.code} />
           {team.group} · {team.name}
         </span>
-        <span className="team-count">{n}/{total}</span>
+        <span className="team-count">{n}/{total}<span className="team-pct">{Math.round(n/total*100)}%</span></span>
       </div>
       <div className="team-progress">
         <div className="team-progress-fill" style={{ width: `${(n / total) * 100}%` }} />
@@ -738,102 +742,135 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
   );
 }
 
-// ─── Comparar ─────────────────────────────────────────────────────────────────
+// ─── Comparar (bilateral) ─────────────────────────────────────────────────────
 
 function CompararTab({ data, owned, duplicates, allCodes }) {
-  const [mode,   setMode]   = useState('pegar');
-  const [input,  setInput]  = useState('');
-  const [result, setResult] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [theirDups, setTheirDups] = useState('');
+  const [theirMis,  setTheirMis]  = useState('');
+  const [result,    setResult]    = useState(null);
+  const [copied,    setCopied]    = useState(false);
 
   function compare() {
-    const parsed = parseStickersText(input);
-    const codes  = Object.keys(parsed).filter(c => allCodes.has(c));
-    const matches = mode === 'pegar'
-      ? codes.filter(c => !owned.has(c))
-      : codes.filter(c => (duplicates[c] || 0) > 0);
-    setResult(matches);
+    const dupCodes = Object.keys(parseStickersText(theirDups)).filter(c => allCodes.has(c));
+    const hasMis   = theirMis.trim().length > 0;
+    const misCodes = hasMis ? new Set(Object.keys(parseStickersText(theirMis)).filter(c => allCodes.has(c))) : null;
+
+    const iGet    = dupCodes.filter(c => !owned.has(c));
+    const myDups  = Object.keys(duplicates);
+    const theyGet = misCodes ? myDups.filter(c => misCodes.has(c)) : myDups;
+
+    setResult({ iGet, theyGet, bilateral: hasMis });
     setCopied(false);
   }
 
-  function switchMode(m) { setMode(m); setResult(null); setInput(''); }
-
-  function copyResult() {
-    if (!result?.length) return;
-    const header = mode === 'pegar' ? 'Figurinhas que posso pegar:' : 'Figurinhas que posso dar:';
-    const body   = groupByTeam(result, data).map(formatGroupLine).join('\n');
-    navigator.clipboard.writeText(`${header}\n\n${body}`);
+  function copyMatch() {
+    if (!result) return;
+    const lines = ['🤝 Match de troca — Copa 2026:'];
+    lines.push('');
+    if (result.iGet.length) {
+      lines.push(`✅ Você pega (${result.iGet.length}):`);
+      lines.push(...groupByTeam(result.iGet, data).map(formatGroupLine));
+    } else {
+      lines.push('✅ Você já tem tudo do parceiro.');
+    }
+    if (result.bilateral) {
+      lines.push('');
+      if (result.theyGet.length) {
+        lines.push(`🔄 Você oferece (${result.theyGet.length}):`);
+        lines.push(...groupByTeam(result.theyGet, data).map(formatGroupLine));
+      } else {
+        lines.push('🔄 Você não tem repetidas que o parceiro precisa.');
+      }
+    }
+    navigator.clipboard.writeText(lines.join('\n'));
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 2500);
   }
 
-  const resultGroups = result ? groupByTeam(result, data) : [];
-  const dupCount     = Object.keys(duplicates).length;
+  const iGetGroups    = result ? groupByTeam(result.iGet,    data) : [];
+  const theyGetGroups = result ? groupByTeam(result.theyGet, data) : [];
+  const dupCount = Object.keys(duplicates).length;
 
   return (
     <div className="trocas-wrap">
-      <div className="comparar-tabs">
-        <button className={`comparar-tab${mode === 'pegar' ? ' active' : ''}`} onClick={() => switchMode('pegar')}>
-          📥 O que posso pegar?
-        </button>
-        <button className={`comparar-tab${mode === 'dar' ? ' active' : ''}`} onClick={() => switchMode('dar')}>
-          📤 O que posso dar?
-        </button>
-      </div>
-
       <div className="comparar-status">
         Você tem <strong>{owned.size}</strong> figurinhas coladas e <strong>{dupCount}</strong> repetidas cadastradas.
       </div>
 
       <section className="trocas-section">
-        {mode === 'pegar' ? (
-          <>
-            <p className="trocas-hint">Cole as figurinhas <strong>REPETIDAS</strong> da outra pessoa.</p>
-            <p className="trocas-hint">Resultado: quais dessas você ainda <strong>não tem</strong>.</p>
-          </>
-        ) : (
-          <>
-            <p className="trocas-hint">Cole as figurinhas que <strong>FALTAM</strong> para a outra pessoa.</p>
-            <p className="trocas-hint">Resultado: quais dessas você tem como <strong>repetida</strong>.</p>
-          </>
-        )}
-        <p className="trocas-hint"><em>Formato:</em> FWC 1, MEX 5, BRA: 13 · 14 ...</p>
-        <textarea className="trocas-textarea" value={input}
-          onChange={e => { setInput(e.target.value); setResult(null); }}
-          rows={5} placeholder="FWC 1, MEX 5, BRA: 13 · 14..." />
-        <button className="trocas-primary-btn" onClick={compare} disabled={!input.trim()}>
-          🔍 Comparar agora
-        </button>
+        <h3>📋 Repetidas do parceiro</h3>
+        <p className="trocas-hint">O que <strong>ele tem pra dar</strong> — você verá o que pode pegar.</p>
+        <p className="trocas-hint"><em>Formato:</em> BRA: 3 · 4, MEX 5(2x), FWC 1</p>
+        <textarea className="trocas-textarea" value={theirDups}
+          onChange={e => { setTheirDups(e.target.value); setResult(null); }}
+          rows={4} placeholder="BRA: 3 · 4, MEX 5(2x), FWC 1..." />
       </section>
 
-      {result !== null && (
+      <section className="trocas-section">
+        <h3>❓ Faltantes do parceiro <span className="opt-badge">opcional</span></h3>
+        <p className="trocas-hint">O que <strong>ele precisa</strong> — você verá o que pode oferecer das suas repetidas.</p>
+        <textarea className="trocas-textarea" value={theirMis}
+          onChange={e => { setTheirMis(e.target.value); setResult(null); }}
+          rows={4} placeholder="BRA: 5 · 6 · 7, GER 2, ARG 14..." />
+      </section>
+
+      <button className="trocas-primary-btn" onClick={compare} disabled={!theirDups.trim()}>
+        🤝 Calcular match
+      </button>
+
+      {result && (
         <section className="trocas-section">
           <div className="trocas-section-header">
-            <h3>
-              {result.length
-                ? `${result.length} figurinha(s) ${mode === 'pegar' ? 'que você pode pegar' : 'que você pode dar'}:`
-                : mode === 'pegar' ? 'Você já tem todas essas figurinhas!' : 'Você não tem repetidas dessas.'}
-            </h3>
-            {result.length > 0 && (
-              <button className="trocas-copy-btn" onClick={copyResult}>
-                {copied ? '✓ Copiado!' : '📋 Copiar'}
-              </button>
-            )}
+            <h3>Resultado da troca</h3>
+            <button className="trocas-copy-btn" onClick={copyMatch}>
+              {copied ? '✓ Copiado!' : '📋 Copiar mensagem'}
+            </button>
           </div>
-          {resultGroups.length > 0 && (
-            <div className="trocas-codes-display">
-              {resultGroups.map(g => (
-                <div key={g.key} className="trocas-group">
-                  <span className="trocas-group-label">
-                    <GroupFlag groupKey={g.key} fallback={g.flag} /> {g.label}:
-                  </span>
-                  <span className="trocas-group-codes">
-                    {g.codes.map(c => <span key={c} className="trocas-code">{codeNum(c)}</span>)}
-                  </span>
-                </div>
-              ))}
+
+          <div className="match-block">
+            <div className="match-block-header match-take">
+              <span>✅ Você pega</span>
+              <span className="match-count">{result.iGet.length}</span>
             </div>
-          )}
+            {result.iGet.length > 0
+              ? <div className="trocas-codes-display">
+                  {iGetGroups.map(g => (
+                    <div key={g.key} className="trocas-group">
+                      <span className="trocas-group-label"><GroupFlag groupKey={g.key} fallback={g.flag} /> {g.label}:</span>
+                      <span className="trocas-group-codes">
+                        {g.codes.map(c => <span key={c} className="trocas-code">{codeNum(c)}</span>)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              : <p className="trocas-empty">Você já tem todas as disponíveis do parceiro.</p>
+            }
+          </div>
+
+          {result.bilateral
+            ? <div className="match-block">
+                <div className="match-block-header match-give">
+                  <span>🔄 Você oferece</span>
+                  <span className="match-count">{result.theyGet.length}</span>
+                </div>
+                {result.theyGet.length > 0
+                  ? <div className="trocas-codes-display">
+                      {theyGetGroups.map(g => (
+                        <div key={g.key} className="trocas-group">
+                          <span className="trocas-group-label"><GroupFlag groupKey={g.key} fallback={g.flag} /> {g.label}:</span>
+                          <span className="trocas-group-codes">
+                            {g.codes.map(c => <span key={c} className="trocas-code">{codeNum(c)}</span>)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  : <p className="trocas-empty">Você não tem repetidas que o parceiro precisa.</p>
+                }
+              </div>
+            : <div className="match-hint-box">
+                💡 Cole as <strong>faltantes do parceiro</strong> acima para ver o que você pode oferecer.
+              </div>
+          }
         </section>
       )}
     </div>
@@ -841,6 +878,36 @@ function CompararTab({ data, owned, duplicates, allCodes }) {
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
+
+function ImportPreview({ text, allCodes, owned, type }) {
+  return useMemo(() => {
+    if (!text.trim()) return null;
+    const parsed  = parseStickersText(text);
+    const keys    = Object.keys(parsed);
+    const valid   = keys.filter(c => allCodes.has(c));
+    const invalid = keys.length - valid.length;
+
+    let msg;
+    if (type === 'owned') {
+      const newOnes = valid.filter(c => !owned.has(c)).length;
+      msg = newOnes > 0
+        ? `${newOnes} nova${newOnes > 1 ? 's' : ''} para marcar de ${valid.length} identificadas`
+        : `Todas as ${valid.length} já estão coladas`;
+    } else if (type === 'dup') {
+      msg = `${valid.length} figurinha${valid.length > 1 ? 's' : ''} com repetidas identificadas`;
+    } else {
+      const misSet  = new Set(valid);
+      const toMark  = [...allCodes].filter(c => !misSet.has(c) && !owned.has(c)).length;
+      msg = `${toMark} figurinha${toMark > 1 ? 's' : ''} novas a marcar (excluindo ${valid.length} faltantes)`;
+    }
+
+    return (
+      <p className="import-preview">
+        📋 {msg}{invalid > 0 ? ` · ${invalid} entrada${invalid > 1 ? 's' : ''} inválida${invalid > 1 ? 's' : ''} ignorada${invalid > 1 ? 's' : ''}` : ''}
+      </p>
+    );
+  }, [text, allCodes, owned, type]);
+}
 
 function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates }) {
   const [ownedInput, setOwnedInput] = useState('');
@@ -901,6 +968,7 @@ function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates })
         <textarea className="trocas-textarea" value={ownedInput}
           onChange={e => { setOwnedInput(e.target.value); setMsg('owned', ''); }}
           rows={4} placeholder="BRA: 1 · 2 · 3, MEX 5, FWC 1..." />
+        <ImportPreview text={ownedInput} allCodes={allCodes} owned={owned} type="owned" />
         {msgs.owned && <p className="trocas-feedback">{msgs.owned}</p>}
         <button className="trocas-primary-btn" onClick={handleImportOwned}
           disabled={busy === 'owned' || !ownedInput.trim()}>
@@ -915,6 +983,7 @@ function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates })
         <textarea className="trocas-textarea" value={dupInput}
           onChange={e => { setDupInput(e.target.value); setMsg('dup', ''); }}
           rows={4} placeholder="BRA 3(2x), MEX: 5 6(3x)..." />
+        <ImportPreview text={dupInput} allCodes={allCodes} owned={owned} type="dup" />
         {msgs.dup && <p className="trocas-feedback">{msgs.dup}</p>}
         <button className="trocas-primary-btn" onClick={handleImportDup}
           disabled={busy === 'dup' || !dupInput.trim()}>
@@ -929,6 +998,7 @@ function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates })
         <textarea className="trocas-textarea" value={misInput}
           onChange={e => { setMisInput(e.target.value); setMsg('mis', ''); }}
           rows={4} placeholder="BRA: 5 · 6 · 7, MEX 3 4 5..." />
+        <ImportPreview text={misInput} allCodes={allCodes} owned={owned} type="missing" />
         {msgs.mis && <p className="trocas-feedback">{msgs.mis}</p>}
         <button className="trocas-primary-btn" onClick={handleImportMissing}
           disabled={busy === 'mis' || !misInput.trim()}>

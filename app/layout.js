@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Panini FIFA World Cup 2026 – Sticker Tracker',
+  title: '⚽ Panini WC2026 – Sticker Tracker',
   description: 'Controle de figurinhas da Copa 2026',
 };
 
@@ -10,6 +10,7 @@ export default function RootLayout({ children }) {
     <html lang="pt-BR">
       <head>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css" />
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>" />
       </head>
       <body>{children}</body>
     </html>
