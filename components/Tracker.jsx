@@ -898,6 +898,7 @@ function CompararTab({ data, owned, duplicates, allCodes }) {
         <textarea className="trocas-textarea" value={theirDups}
           onChange={e => { setTheirDups(e.target.value); setResult(null); }}
           rows={4} placeholder="BRA: 3 · 4, MEX 5(2x), FWC 1..." />
+        <ImportPreview text={theirDups} allCodes={allCodes} owned={owned} duplicates={duplicates} type="compare_dup" />
       </section>
 
       <section className="trocas-section">
@@ -906,6 +907,7 @@ function CompararTab({ data, owned, duplicates, allCodes }) {
         <textarea className="trocas-textarea" value={theirMis}
           onChange={e => { setTheirMis(e.target.value); setResult(null); }}
           rows={4} placeholder="BRA: 5 · 6 · 7, GER 2, ARG 14..." />
+        <ImportPreview text={theirMis} allCodes={allCodes} owned={owned} duplicates={duplicates} type="compare_missing" />
       </section>
 
       <button className="trocas-primary-btn" onClick={compare} disabled={!theirDups.trim()}>
@@ -980,28 +982,35 @@ function ImportPreview({ text, allCodes, owned, duplicates, type }) {
     const keys    = Object.keys(parsed);
     const valid   = keys.filter(c => allCodes.has(c));
     const invalid = keys.length - valid.length;
+    const pl = n => n !== 1;
 
     let msg;
     if (type === 'owned') {
       const newOnes = valid.filter(c => !owned.has(c)).length;
       msg = newOnes > 0
-        ? `${newOnes} nova${newOnes > 1 ? 's' : ''} para marcar de ${valid.length} identificadas`
+        ? `${newOnes} nova${pl(newOnes) ? 's' : ''} para marcar de ${valid.length} identificadas`
         : `Todas as ${valid.length} já estão coladas`;
     } else if (type === 'dup') {
       const totalCopies = valid.reduce((s, c) => s + (parsed[c] || 1), 0);
       const updating    = duplicates ? valid.filter(c => (duplicates[c] || 0) > 0).length : 0;
-      const pl = n => n !== 1;
       msg = `${valid.length} figurinha${pl(valid.length) ? 's' : ''} · ${totalCopies} repetida${pl(totalCopies) ? 's' : ''} no total`;
       if (updating > 0) msg += ` · ${updating} já cadastrada${pl(updating) ? 's' : ''} (serão atualizadas)`;
+    } else if (type === 'compare_dup') {
+      const canGet = valid.filter(c => !owned.has(c)).length;
+      msg = `${valid.length} figurinha${pl(valid.length) ? 's' : ''} identificadas · ${canGet} que você não tem (pode pegar)`;
+    } else if (type === 'compare_missing') {
+      const myDupSet = new Set(Object.keys(duplicates || {}));
+      const canOffer = valid.filter(c => myDupSet.has(c)).length;
+      msg = `${valid.length} faltante${pl(valid.length) ? 's' : ''} identificada${pl(valid.length) ? 's' : ''} · ${canOffer} intersectam suas repetidas (pode oferecer)`;
     } else {
-      const misSet  = new Set(valid);
-      const toMark  = [...allCodes].filter(c => !misSet.has(c) && !owned.has(c)).length;
-      msg = `${toMark} figurinha${toMark > 1 ? 's' : ''} novas a marcar (excluindo ${valid.length} faltantes)`;
+      const misSet = new Set(valid);
+      const toMark = [...allCodes].filter(c => !misSet.has(c) && !owned.has(c)).length;
+      msg = `${toMark} figurinha${pl(toMark) ? 's' : ''} novas a marcar (excluindo ${valid.length} faltantes)`;
     }
 
     return (
       <p className="import-preview">
-        📋 {msg}{invalid > 0 ? ` · ${invalid} entrada${invalid > 1 ? 's' : ''} inválida${invalid > 1 ? 's' : ''} ignorada${invalid > 1 ? 's' : ''}` : ''}
+        📋 {msg}{invalid > 0 ? ` · ${invalid} entrada${pl(invalid) ? 's' : ''} inválida${pl(invalid) ? 's' : ''} ignorada${pl(invalid) ? 's' : ''}` : ''}
       </p>
     );
   }, [text, allCodes, owned, duplicates, type]);
