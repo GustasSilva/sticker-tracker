@@ -37,7 +37,8 @@ function parseStickersText(text) {
     }
     const numOnly = token.match(/^(\d+)(?:\((\d+)X?\))?$/);
     if (numOnly && lastPrefix) {
-      const code = lastPrefix + parseInt(numOnly[1]);
+      const rawNum = numOnly[1];
+      const code = rawNum === '00' ? '00' : lastPrefix + parseInt(rawNum);
       result[code] = (result[code] || 0) + (numOnly[2] ? parseInt(numOnly[2]) : 1);
       continue;
     }
@@ -761,8 +762,9 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
         <h3>➕ Adicionar repetidas</h3>
         <p className="trocas-hint">Formatos aceitos: <code>MEX 5(2x)</code> ou <code>BRA: 13, 14</code></p>
         <p className="trocas-hint">Figurinhas com repetidas são marcadas como coladas automaticamente.</p>
-        <textarea className="trocas-textarea" value={input} onChange={e => setInput(e.target.value)}
-          placeholder="Pan: 9(2x), Bra: 13(1x), MEX 5..." rows={4} />
+        <textarea className="trocas-textarea" value={input} onChange={e => { setInput(e.target.value); setFeedback(''); }}
+          placeholder="Pan: 9(2x), Bra: 13(1x), MEX 5, IRN 7 7..." rows={4} />
+        <ImportPreview text={input} allCodes={allCodes} owned={owned} duplicates={duplicates} type="dup" />
         {feedback && <p className="trocas-feedback">{feedback}</p>}
         <button className="trocas-primary-btn" onClick={markDuplicates} disabled={saving || !input.trim()}>
           {saving ? 'Salvando...' : '📌 Marcar como repetidas'}
