@@ -531,28 +531,19 @@ export default function Tracker({ data, userEmail }) {
   return (
     <div>
       <div className="app-header-wrap">
-        <div className="app-title-area">
-          <h1>⚽ Panini FIFA World Cup 2026</h1>
-          <div id="summary">
-            <span className="sum-count"><strong>{owned.size}</strong>/{totalAll}</span>
-            {' '}figurinhas
+        <h1>⚽ Panini FIFA World Cup 2026</h1>
+        <div id="summary">
+          <span className="sum-count"><strong>{owned.size}</strong>/{totalAll} figurinhas</span>
+          <span className="sum-sep">·</span>
+          <span className="sum-pct">{pct}%</span>
+          {totalDups > 0 && <>
             <span className="sum-sep">·</span>
-            <span className="sum-pct">{pct}%</span>
-            {totalDups > 0 && <>
-              <span className="sum-sep">·</span>
-              <span className="sum-dups">{totalDups} rep.</span>
-            </>}
-          </div>
+            <span className="sum-dups">{totalDups} rep.</span>
+          </>}
         </div>
-        <div className="app-user-corner">
-          <span className="user-email-small">{userEmail}</span>
-          <form action="/logout" method="post">
-            <button type="submit" className="link-btn">Sair</button>
-          </form>
+        <div id="total-bar-wrap">
+          <div id="total-bar" style={{ width: `${pct}%` }} />
         </div>
-      </div>
-      <div id="total-bar-wrap">
-        <div id="total-bar" style={{ width: `${pct}%` }} />
       </div>
 
       <nav className="tab-nav">
@@ -564,7 +555,7 @@ export default function Tracker({ data, userEmail }) {
       {tab === 'colecao'  && <ColecaoTab data={data} owned={owned} duplicates={duplicates} toggle={toggle} setCount={setCount} />}
       {tab === 'trocas'   && <TrocasTab  data={data} owned={owned} duplicates={duplicates} missingCodes={missingCodes} allCodes={allCodes} saveDuplicates={saveDuplicates} clearDuplicates={clearDuplicates} importOwned={importOwned} pushHist={pushHist} />}
       {tab === 'comparar' && <CompararTab data={data} owned={owned} duplicates={duplicates} allCodes={allCodes} />}
-      {tab === 'config'   && <ConfigTab   allCodes={allCodes} owned={owned} duplicates={duplicates} importOwned={importOwned} saveDuplicates={saveDuplicates} />}
+      {tab === 'config'   && <ConfigTab   allCodes={allCodes} owned={owned} duplicates={duplicates} importOwned={importOwned} saveDuplicates={saveDuplicates} userEmail={userEmail} />}
 
       {/* floating history button */}
       <button className="history-fab" onClick={() => setHistoryOpen(true)} title="Histórico de alterações">
@@ -621,23 +612,24 @@ function ColecaoTab({ data, owned, duplicates, toggle, setCount }) {
 
   return (
     <div>
-      <div className="controls-bar">
-        <div className="controls-top-row">
-          <div className="filter-bar">
-            {[['all','Todas'],['incomplete','Incompletas'],['complete','Completas'],['none','Vazias']].map(([m, l]) => (
-              <button key={m} className={filter === m ? 'active' : ''} onClick={() => setFilter(m)}>{l}</button>
-            ))}
+      <div className="sticky-controls">
+        <div className="controls-bar">
+          <div className="controls-top-row">
+            <div className="filter-bar">
+              {[['all','Todas'],['incomplete','Incompletas'],['complete','Completas'],['none','Vazias']].map(([m, l]) => (
+                <button key={m} className={filter === m ? 'active' : ''} onClick={() => setFilter(m)}>{l}</button>
+              ))}
+            </div>
+            <button className="collapse-all-btn" onClick={toggleCollapseAll}>
+              {allCollapsed ? '▸ Expandir tudo' : '▾ Recolher tudo'}
+            </button>
           </div>
-          <button className="collapse-all-btn" onClick={toggleCollapseAll}>
-            {allCollapsed ? '▸ Expandir tudo' : '▾ Recolher tudo'}
-          </button>
+          <input type="text" className="search-input"
+            placeholder="🔍 Buscar por código, jogador ou seleção..."
+            value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <input type="text" className="search-input"
-          placeholder="🔍 Buscar por código, jogador ou seleção..."
-          value={search} onChange={e => setSearch(e.target.value)} />
+        <GroupJumpBar teams={data.teams} owned={owned} jump={jump} />
       </div>
-
-      <GroupJumpBar teams={data.teams} owned={owned} jump={jump} />
 
       <div className="grid">
         <SpecialCard title="✦ Página Inicial / FIFA World Cup History"
@@ -1340,7 +1332,7 @@ function ImportPreview({ text, allCodes, owned, duplicates, type }) {
   }, [text, allCodes, owned, duplicates, type]);
 }
 
-function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates }) {
+function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates, userEmail }) {
   const [ownedInput, setOwnedInput] = useState('');
   const [dupInput,   setDupInput]   = useState('');
   const [misInput,   setMisInput]   = useState('');
@@ -1392,6 +1384,17 @@ function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates })
 
   return (
     <div className="trocas-wrap">
+      {userEmail && (
+        <section className="trocas-section config-user-section">
+          <div className="config-user-row">
+            <span className="config-user-email">👤 {userEmail}</span>
+            <form action="/logout" method="post">
+              <button type="submit" className="config-logout-btn">Sair</button>
+            </form>
+          </div>
+        </section>
+      )}
+
       <section className="trocas-section">
         <h3>✅ Importar coladas</h3>
         <p className="trocas-hint">Cole a lista de figurinhas que você tem. Apenas as novas serão marcadas.</p>

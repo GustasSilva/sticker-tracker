@@ -8,20 +8,19 @@ body {
 }
 /* ---- App header ---- */
 .app-header-wrap {
-  position: relative;
   text-align: center;
-  margin-bottom: 6px;
-  /* min padding so content doesn't slide under the corner on narrow viewports */
-  padding: 0 170px;
+  padding: 0 12px 12px;
 }
-.app-title-area { text-align: center; }
-h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.4); margin-bottom: 4px; }
+h1 {
+  text-align: center; font-size: 1.6rem; color: #ffd700;
+  text-shadow: 0 0 20px rgba(255,215,0,0.4); margin-bottom: 6px; line-height: 1.2;
+}
 #summary {
   display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
-  font-size: 0.88rem; color: #556; letter-spacing: 0.01em;
+  font-size: 0.85rem; color: #556; letter-spacing: 0.01em; margin-bottom: 10px;
 }
 .sum-count { color: #aab; font-variant-numeric: tabular-nums; }
-.sum-count strong { color: #e8eaf0; font-weight: 600; font-size: 0.95rem; }
+.sum-count strong { color: #e8eaf0; font-weight: 600; }
 .sum-sep { color: #2a3a58; font-size: 0.7rem; }
 .sum-pct {
   background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.22);
@@ -33,38 +32,19 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
   color: #ffb300; border-radius: 12px; padding: 1px 10px;
   font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em;
 }
+#total-bar-wrap { max-width: 500px; margin: 0 auto; background: #1e2d4a; border-radius: 8px; height: 10px; overflow: hidden; }
+#total-bar { height: 100%; background: linear-gradient(90deg, #ffd700, #ff8c00); border-radius: 8px; transition: width 0.3s; }
 
-/* Corner: absolutely positioned so it never affects centering */
-.app-user-corner {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-}
-.user-email-small {
-  font-size: 0.68rem; color: #445; max-width: 160px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
 .link-btn { background: none; border: none; color: #556; cursor: pointer; font-size: 0.72rem; padding: 0; }
 .link-btn:hover { color: #ffd700; text-decoration: underline; }
 
-#total-bar-wrap { max-width: 600px; margin: 8px auto 24px; background: #1e2d4a; border-radius: 8px; height: 14px; overflow: hidden; }
-#total-bar { height: 100%; background: linear-gradient(90deg, #ffd700, #ff8c00); border-radius: 8px; transition: width 0.3s; }
-
-/* On narrow screens collapse the corner into the flow */
-@media (max-width: 600px) {
-  .app-header-wrap { padding: 0; }
-  .app-user-corner {
-    position: static;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    margin-top: 6px;
-  }
+/* ---- Sticky controls (filter + search + jump bar) ---- */
+.sticky-controls {
+  position: sticky; top: 0; z-index: 100;
+  background: #0a1628;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #111f38;
+  margin-bottom: 12px;
 }
 
 .loading { text-align: center; padding: 40px; color: #aab; }
@@ -113,11 +93,11 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .team-card.is-collapsed { opacity: 0.75; }
 
 /* Scroll offset so sticky controls don't cover the target card */
-.team-card { scroll-margin-top: 140px; }
+.team-card { scroll-margin-top: 180px; }
 
 /* ---- Group Jump Bar ---- */
 .jump-bar-wrap {
-  max-width: 1400px; margin: 0 auto 16px;
+  max-width: 1400px; margin: 0 auto 0;
   overflow-x: auto; -webkit-overflow-scrolling: touch;
   padding: 0 4px 6px;
   /* hide scrollbar but keep scroll */
@@ -471,7 +451,7 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .tab-btn:hover:not(.active) { color: #e8eaf0; }
 
 /* ---- Controls bar ---- */
-.controls-bar { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
+.controls-bar { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 8px; padding-top: 10px; }
 .controls-top-row { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 660px; justify-content: center; flex-wrap: wrap; }
 .collapse-all-btn {
   background: none; border: 1px solid #2a4070; color: #778; border-radius: 20px;
@@ -495,6 +475,16 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 
 /* ---- Trocas / Comparar ---- */
 .trocas-wrap { max-width: 680px; margin: 0 auto; padding: 0 16px 40px; display: flex; flex-direction: column; gap: 14px; }
+
+/* Config user section */
+.config-user-section { padding: 12px 16px !important; }
+.config-user-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.config-user-email { font-size: 0.82rem; color: #aab; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.config-logout-btn {
+  background: none; border: 1px solid #2a4070; border-radius: 7px;
+  color: #7fa8d4; padding: 4px 14px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; flex-shrink: 0;
+}
+.config-logout-btn:hover { background: rgba(127,168,212,0.12); color: #a8c8f0; }
 .trocas-section {
   background: #132038; border: 1px solid #1e3055; border-radius: 10px;
   padding: 20px; display: flex; flex-direction: column; gap: 12px;
@@ -761,10 +751,13 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .undo-modal-confirm:hover { background: #2a4e8a; }
 
 @media (max-width: 540px) {
+  body { padding: 10px; }
+  h1 { font-size: 1.3rem; }
   .stickers { grid-template-columns: repeat(4, 1fr); }
   .tab-btn { font-size: 0.72rem; padding: 8px 4px; }
   .comparar-tabs { flex-direction: column; }
   .trocas-codes-display { max-height: 180px; }
+  .team-card { scroll-margin-top: 220px; }
 }
 
 @media (max-width: 360px) {
