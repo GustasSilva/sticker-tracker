@@ -291,11 +291,15 @@ export default function Tracker({ data, userEmail }) {
       }
 
       if (histEvRes.error) console.error('[hist] load:', histEvRes.error);
-      if (histEvRes.data?.length) {
-        setHistory(histEvRes.data.map(row => ({ ...row.payload, id: row.id, ts: new Date(row.created_at) })));
-      } else if (histFallbackRes.data) {
-        setHistory(histFallbackRes.data.map(row => buildHistEntry(row, data)));
-      }
+      const richEntries = (histEvRes.data || []).map(row => ({ ...row.payload, id: row.id, ts: new Date(row.created_at) }));
+      const coveredCodes = new Set(richEntries.filter(e => e.code).map(e => e.code));
+      const fallbackEntries = (histFallbackRes.data || [])
+        .map(row => buildHistEntry(row, data))
+        .filter(e => !coveredCodes.has(e.code));
+      const merged = [...richEntries, ...fallbackEntries]
+        .sort((a, b) => new Date(b.ts) - new Date(a.ts))
+        .slice(0, 200);
+      if (merged.length) setHistory(merged);
 
       setLoading(false);
     }
