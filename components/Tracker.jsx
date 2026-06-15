@@ -231,12 +231,14 @@ export default function Tracker({ data, userEmail }) {
   function pushHist(entry) {
     const full = { ...entry, id: entry.id ?? String(Date.now() + Math.random()), ts: entry.ts ?? new Date() };
     setHistory(h => [full, ...h.slice(0, 199)]);
-    getUserId().then(userId => {
+    supabase.auth.getUser().then(({ data: authData }) => {
+      const userId = authData?.user?.id;
       if (!userId) return;
+      const payload = { ...full, ts: full.ts.toISOString() };
       supabase.from('history_events').upsert(
-        { id: String(full.id), user_id: userId, type: full.type, payload: full, created_at: full.ts.toISOString() },
+        { id: String(full.id), user_id: userId, type: full.type, payload, created_at: full.ts.toISOString() },
         { onConflict: 'id,user_id' }
-      );
+      ).then(({ error }) => { if (error) console.error('[hist] upsert:', error); });
     });
   }
 
@@ -288,6 +290,7 @@ export default function Tracker({ data, userEmail }) {
         setDuplicates(dupMap);
       }
 
+      if (histEvRes.error) console.error('[hist] load:', histEvRes.error);
       if (histEvRes.data?.length) {
         setHistory(histEvRes.data.map(row => ({ ...row.payload, id: row.id, ts: new Date(row.created_at) })));
       } else if (histFallbackRes.data) {
