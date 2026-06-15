@@ -563,6 +563,29 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
   border-radius: 0 6px 6px 0; padding: 6px 10px; margin: 0;
 }
 
+/* ---- Pack breakdown (abertura de envelope) ---- */
+.pack-breakdown { margin-top: 8px; border: 1px solid #1a2f50; border-radius: 8px; overflow: hidden; }
+.pack-summary { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(255,255,255,0.02); border-bottom: 1px solid #1a2f50; }
+.pack-sum-new { color: #00c853; font-weight: 600; font-size: 0.78rem; }
+.pack-sum-sep { color: #2a3a58; font-size: 0.78rem; }
+.pack-sum-dup { color: #ffb300; font-weight: 600; font-size: 0.78rem; }
+.pack-groups { padding: 6px 10px 8px; display: flex; flex-direction: column; gap: 5px; }
+.pack-group { display: flex; align-items: flex-start; gap: 8px; }
+.pack-group-hd { display: flex; align-items: center; gap: 4px; min-width: 54px; flex-shrink: 0; padding-top: 2px; }
+.pack-flag { font-size: 0.85rem; line-height: 1; }
+.pack-flag-txt { font-size: 0.78rem; line-height: 1; }
+.pack-team-code { color: #7fa8d4; font-weight: 600; font-size: 0.68rem; }
+.pack-chips { display: flex; flex-wrap: wrap; gap: 3px; }
+.pack-chip-group { display: contents; }
+.pack-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 20px; padding: 0 5px;
+  border-radius: 4px; font-size: 0.68rem; font-weight: 700; line-height: 1; cursor: default;
+}
+.pack-chip sup { font-size: 0.5rem; margin-left: 1px; vertical-align: super; }
+.pack-chip-new { background: rgba(0,200,83,0.13); border: 1px solid rgba(0,200,83,0.32); color: #00c853; }
+.pack-chip-dup { background: rgba(255,179,0,0.11); border: 1px solid rgba(255,179,0,0.28); color: #ffb300; }
+
 /* ---- Bilateral match (Comparar) ---- */
 .opt-badge {
   display: inline-block; background: #1e3055; color: #556;
