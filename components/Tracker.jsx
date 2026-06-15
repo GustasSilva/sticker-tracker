@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, memo, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { PLAYER_NAMES, TEAM_FLAGS, TEAM_ISO, TEAM_COLORS } from '@/data/players';
 
@@ -229,7 +229,15 @@ export default function Tracker({ data, userEmail }) {
   const [historyOpen,  setHistoryOpen]  = useState(false);
 
   function pushHist(entry) {
-    setHistory(h => [{ ...entry, id: entry.id ?? (Date.now() + Math.random()), ts: entry.ts ?? new Date() }, ...h.slice(0, 199)]);
+    const full = { ...entry, id: entry.id ?? String(Date.now() + Math.random()), ts: entry.ts ?? new Date() };
+    setHistory(h => [full, ...h.slice(0, 199)]);
+    getUserId().then(userId => {
+      if (!userId) return;
+      supabase.from('history_events').upsert(
+        { id: String(full.id), user_id: userId, type: full.type, payload: full, created_at: full.ts.toISOString() },
+        { onConflict: 'id,user_id' }
+      );
+    });
   }
 
   const allCodes = useMemo(() => {
@@ -253,8 +261,9 @@ export default function Tracker({ data, userEmail }) {
   useEffect(() => {
     let active = true;
     async function load() {
-      const [mainRes, histRes] = await Promise.all([
+      const [mainRes, histEvRes, histFallbackRes] = await Promise.all([
         supabase.from('user_progress').select('sticker_code, owned, duplicates').or('owned.eq.true,duplicates.gt.0'),
+        supabase.from('history_events').select('id, type, payload, created_at').order('created_at', { ascending: false }).limit(200),
         supabase.from('user_progress').select('sticker_code, owned, duplicates, updated_at').order('updated_at', { ascending: false }).limit(60),
       ]);
 
@@ -279,8 +288,10 @@ export default function Tracker({ data, userEmail }) {
         setDuplicates(dupMap);
       }
 
-      if (histRes.data) {
-        setHistory(histRes.data.map(row => buildHistEntry(row, data)));
+      if (histEvRes.data?.length) {
+        setHistory(histEvRes.data.map(row => ({ ...row.payload, id: row.id, ts: new Date(row.created_at) })));
+      } else if (histFallbackRes.data) {
+        setHistory(histFallbackRes.data.map(row => buildHistEntry(row, data)));
       }
 
       setLoading(false);
@@ -1385,7 +1396,7 @@ function HistoryDrawer({ history, data, onClose }) {
   );
 }
 
-function HistEntry({ entry, data }) {
+const HistEntry = memo(function HistEntry({ entry, data }) {
   const [expanded, setExpanded] = useState(false);
   const ago  = formatAgo(entry.ts);
   const name = entry.code ? (PLAYER_NAMES[entry.code] || '') : '';
@@ -1523,4 +1534,4 @@ function HistEntry({ entry, data }) {
       <span className="hist-ago">{ago}</span>
     </div>
   );
-}
+});
