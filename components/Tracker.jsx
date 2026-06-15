@@ -614,14 +614,12 @@ function ColecaoTab({ data, owned, duplicates, toggle, setCount }) {
     <div>
       <div className="sticky-controls">
         <div className="controls-bar">
-          <div className="controls-top-row">
-            <div className="filter-bar">
-              {[['all','Todas'],['incomplete','Incompletas'],['complete','Completas'],['none','Vazias']].map(([m, l]) => (
-                <button key={m} className={filter === m ? 'active' : ''} onClick={() => setFilter(m)}>{l}</button>
-              ))}
-            </div>
+          <div className="filter-bar">
+            {[['all','Todas'],['incomplete','Incompletas'],['complete','Completas']].map(([m, l]) => (
+              <button key={m} className={filter === m ? 'active' : ''} onClick={() => setFilter(m)}>{l}</button>
+            ))}
             <button className="collapse-all-btn" onClick={toggleCollapseAll}>
-              {allCollapsed ? '▸ Expandir tudo' : '▾ Recolher tudo'}
+              {allCollapsed ? '▸ Expandir' : '▾ Recolher'}
             </button>
           </div>
           <input type="text" className="search-input"

@@ -12,16 +12,18 @@ body {
   padding: 0 12px 12px;
 }
 h1 {
-  text-align: center; font-size: 1.6rem; color: #ffd700;
-  text-shadow: 0 0 20px rgba(255,215,0,0.4); margin-bottom: 6px; line-height: 1.2;
+  font-family: 'Barlow Condensed', 'Segoe UI', sans-serif;
+  font-weight: 800; text-align: center; font-size: 1.9rem; color: #ffd700;
+  text-shadow: 0 0 24px rgba(255,215,0,0.45); margin-bottom: 6px; line-height: 1.15;
+  letter-spacing: 0.02em; text-transform: uppercase;
 }
 #summary {
   display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
-  font-size: 0.85rem; color: #556; letter-spacing: 0.01em; margin-bottom: 10px;
+  font-size: 0.85rem; color: #8899aa; letter-spacing: 0.01em; margin-bottom: 10px;
 }
-.sum-count { color: #aab; font-variant-numeric: tabular-nums; }
+.sum-count { color: #c0c8d8; font-variant-numeric: tabular-nums; }
 .sum-count strong { color: #e8eaf0; font-weight: 600; }
-.sum-sep { color: #2a3a58; font-size: 0.7rem; }
+.sum-sep { color: #4a5a7a; font-size: 0.7rem; }
 .sum-pct {
   background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.22);
   color: #ffd700; border-radius: 12px; padding: 1px 10px;
@@ -49,14 +51,18 @@ h1 {
 
 .loading { text-align: center; padding: 40px; color: #aab; }
 
-.filter-bar { text-align: center; margin-bottom: 20px; }
-.filter-bar button {
-  background: #1e2d4a; color: #ccd; border: 1px solid #334;
-  padding: 6px 16px; border-radius: 20px; cursor: pointer; margin: 3px;
-  font-size: 0.82rem; transition: all 0.2s;
+.filter-bar {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: nowrap; gap: 6px;
 }
-.filter-bar button:hover, .filter-bar button.active {
-  background: #ffd700; color: #0a1628; border-color: #ffd700; font-weight: bold;
+.filter-bar button {
+  background: #1e2d4a; color: #c0c8d8; border: 1px solid #2a3d5a;
+  padding: 7px 16px; border-radius: 20px; cursor: pointer;
+  font-size: 0.82rem; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;
+}
+.filter-bar button:hover { background: #253d60; color: #e8eaf0; }
+.filter-bar button.active {
+  background: #ffd700; color: #0a1628; border-color: #ffd700; font-weight: 700;
 }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; max-width: 1400px; margin: 0 auto; }
@@ -79,11 +85,11 @@ h1 {
 
 .team-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #1a2d4e; border-bottom: 1px solid #243555; gap: 6px; }
 .team-header:hover { background: #1e3460; }
-.team-header-caret { font-size: 0.7rem; color: #556; flex-shrink: 0; transition: transform 0.2s; line-height: 1; }
+.team-header-caret { font-size: 0.7rem; color: #7a8aaa; flex-shrink: 0; transition: transform 0.2s; line-height: 1; }
 .team-name { font-weight: 700; font-size: 0.92rem; color: #e8f0ff; display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .team-count { font-size: 0.78rem; color: #aab; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
 .team-pct {
-  font-size: 0.68rem; color: #445; background: #0d1e36;
+  font-size: 0.68rem; color: #7a8aaa; background: #0d1e36;
   border-radius: 4px; padding: 1px 5px; font-weight: 600;
 }
 .team-complete .team-pct { color: #0a1628; background: rgba(0,0,0,0.2); }
@@ -114,7 +120,7 @@ h1 {
 .jump-group { display: flex; align-items: center; gap: 3px; }
 .jump-divider { width: 1px; height: 28px; background: #1e3055; margin: 0 6px; flex-shrink: 0; }
 .jump-group-label {
-  font-size: 0.6rem; font-weight: bold; color: #334; letter-spacing: 0.06em;
+  font-size: 0.6rem; font-weight: bold; color: #5a6e8a; letter-spacing: 0.06em;
   padding: 0 3px; flex-shrink: 0;
 }
 
@@ -139,7 +145,8 @@ h1 {
 .team-name .fi { width: 1.3em; height: 0.9em; border-radius: 2px; flex-shrink: 0; }
 
 /* ---- Sticker Grid ---- */
-.stickers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; }
+.stickers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px; }
+@media (min-width: 400px) { .stickers { grid-template-columns: repeat(5, 1fr); } }
 
 /* FWC / CC cards are full-width: keep stickers compact with auto-fill */
 .special-stickers { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); }
@@ -251,36 +258,61 @@ h1 {
   pointer-events: none;
 }
 
-/* Foil (escudo) sticker — uses team color */
+/* Foil (escudo) sticker — rainbow holographic effect */
 @keyframes foil-sweep {
-  0%   { background-position: 220% center; }
-  100% { background-position: -220% center; }
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+@keyframes foil-rainbow {
+  0%   { opacity: 0; }
+  20%  { opacity: 0.55; }
+  50%  { opacity: 0.7; }
+  80%  { opacity: 0.55; }
+  100% { opacity: 0; }
 }
 .foil-sticker .sticker-box {
   background: linear-gradient(110deg,
-    color-mix(in srgb, var(--tc) 6%,  #0d1e36) 20%,
-    color-mix(in srgb, var(--tc) 28%, #0d1e36) 38%,
-    color-mix(in srgb, var(--tc) 45%, #c8d8f0) 50%,
-    color-mix(in srgb, var(--tc) 28%, #0d1e36) 62%,
-    color-mix(in srgb, var(--tc) 6%,  #0d1e36) 80%
+    color-mix(in srgb, var(--tc) 5%,  #0d1e36) 15%,
+    color-mix(in srgb, var(--tc) 20%, #0d1e36) 35%,
+    color-mix(in srgb, var(--tc) 35%, #c8d8f0) 50%,
+    color-mix(in srgb, var(--tc) 20%, #0d1e36) 65%,
+    color-mix(in srgb, var(--tc) 5%,  #0d1e36) 85%
+  );
+  background-size: 280% auto;
+  border-color: color-mix(in srgb, var(--tc) 50%, #1e3055);
+  animation: foil-sweep 3.5s linear infinite;
+  position: relative;
+}
+.foil-sticker .sticker-box::before {
+  content: '';
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(125deg,
+    rgba(255,0,128,0) 0%,
+    rgba(255,80,0,0.35) 15%,
+    rgba(255,220,0,0.45) 30%,
+    rgba(0,255,128,0.45) 45%,
+    rgba(0,180,255,0.45) 60%,
+    rgba(140,0,255,0.35) 75%,
+    rgba(255,0,180,0) 100%
   );
   background-size: 300% auto;
-  border-color: color-mix(in srgb, var(--tc) 45%, #1e3055);
-  animation: foil-sweep 4s linear infinite;
+  animation: foil-sweep 3.5s linear infinite, foil-rainbow 3.5s ease-in-out infinite;
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
-.foil-sticker .sticker-box::before { display: none; }
 .foil-sticker.is-checked .sticker-box {
   background: linear-gradient(110deg,
-    color-mix(in srgb, var(--tc) 30%, #0d1e36) 15%,
-    color-mix(in srgb, var(--tc) 65%, #ffffff) 38%,
-    color-mix(in srgb, var(--tc) 85%, #ffffff) 50%,
-    color-mix(in srgb, var(--tc) 65%, #ffffff) 62%,
-    color-mix(in srgb, var(--tc) 30%, #0d1e36) 85%
+    color-mix(in srgb, var(--tc) 25%, #0d1e36) 10%,
+    color-mix(in srgb, var(--tc) 60%, #ffffff) 35%,
+    color-mix(in srgb, var(--tc) 80%, #ffffff) 50%,
+    color-mix(in srgb, var(--tc) 60%, #ffffff) 65%,
+    color-mix(in srgb, var(--tc) 25%, #0d1e36) 90%
   );
-  background-size: 300% auto;
+  background-size: 280% auto;
   border-color: var(--tc);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--tc) 65%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--tc) 70%, transparent), 0 0 6px rgba(255,255,255,0.2);
 }
+.foil-sticker.is-checked .sticker-box::before { opacity: 0.75; }
 .foil-sticker.is-checked .sticker-num-big { color: #fff; }
 
 /* Team photo (position 13) — also uses team color */
@@ -451,11 +483,10 @@ h1 {
 .tab-btn:hover:not(.active) { color: #e8eaf0; }
 
 /* ---- Controls bar ---- */
-.controls-bar { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 8px; padding-top: 10px; }
-.controls-top-row { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 660px; justify-content: center; flex-wrap: wrap; }
+.controls-bar { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 8px; padding-top: 10px; }
 .collapse-all-btn {
-  background: none; border: 1px solid #2a4070; color: #778; border-radius: 20px;
-  padding: 5px 14px; font-size: 0.78rem; cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0;
+  background: none; border: 1px solid #2a3d5a; color: #8899aa; border-radius: 20px;
+  padding: 7px 14px; font-size: 0.82rem; cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0;
 }
 .collapse-all-btn:hover { border-color: #ffd700; color: #ffd700; }
 .search-input {
@@ -463,7 +494,7 @@ h1 {
   color: #e8eaf0; padding: 8px 18px; font-size: 0.9rem; outline: none;
   width: 100%; max-width: 420px; transition: border-color 0.2s;
 }
-.search-input::placeholder { color: #556; }
+.search-input::placeholder { color: #7a8aaa; }
 .search-input:focus { border-color: #ffd700; }
 
 /* ---- Comparar status bar ---- */
@@ -716,7 +747,7 @@ h1 {
 .badge-amber { background: rgba(255,179,0,0.12);  color: #ffb300; }
 .badge-red   { background: rgba(255,82,82,0.12);   color: #ff5252; }
 
-.hist-ago { font-size: 0.64rem; color: #2a3a58; white-space: nowrap; flex-shrink: 0; }
+.hist-ago { font-size: 0.64rem; color: #5a6e8a; white-space: nowrap; flex-shrink: 0; }
 
 .hist-badge-undone { background: rgba(100,100,120,0.18); color: #7a8aaa; }
 
@@ -752,12 +783,13 @@ h1 {
 
 @media (max-width: 540px) {
   body { padding: 10px; }
-  h1 { font-size: 1.3rem; }
-  .stickers { grid-template-columns: repeat(4, 1fr); }
+  h1 { font-size: 1.5rem; }
   .tab-btn { font-size: 0.72rem; padding: 8px 4px; }
   .comparar-tabs { flex-direction: column; }
   .trocas-codes-display { max-height: 180px; }
   .team-card { scroll-margin-top: 220px; }
+  .filter-bar { gap: 4px; }
+  .filter-bar button, .collapse-all-btn { padding: 6px 10px; font-size: 0.76rem; }
 }
 
 @media (max-width: 360px) {
