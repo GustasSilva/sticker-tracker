@@ -330,17 +330,22 @@ export default function Tracker({ data, userEmail }) {
 
   // qty > 0 auto-marks as owned
   async function saveDuplicates(updates, { skipHist = false } = {}) {
-    const userId   = await getUserId();
+    const userId  = await getUserId();
     if (!userId) return;
-    const newDups  = { ...duplicates };
-    const newOwned = new Set(owned);
-    for (const [code, qty] of Object.entries(updates)) {
-      if (qty <= 0) { delete newDups[code]; } else { newDups[code] = qty; newOwned.add(code); }
-    }
-    setDuplicates(newDups);
-    setOwned(newOwned);
+    const entries = Object.entries(updates);
+    setDuplicates(prev => {
+      const next = { ...prev };
+      for (const [code, qty] of entries) {
+        if (qty <= 0) delete next[code]; else next[code] = qty;
+      }
+      return next;
+    });
+    setOwned(prev => {
+      const next = new Set(prev);
+      for (const [code, qty] of entries) { if (qty > 0) next.add(code); }
+      return next;
+    });
     if (!skipHist) {
-      const entries = Object.entries(updates);
       if (entries.length === 1) {
         const [code, qty] = entries[0];
         pushHist({ type: 'dup', code, ...getTeamInfo(code, data), qty });
@@ -350,9 +355,9 @@ export default function Tracker({ data, userEmail }) {
       }
     }
     await supabase.from('user_progress').upsert(
-      Object.entries(updates).map(([code, qty]) => ({
+      entries.map(([code, qty]) => ({
         user_id: userId, sticker_code: code,
-        owned: newOwned.has(code), duplicates: Math.max(0, qty), updated_at: new Date().toISOString(),
+        owned: qty > 0, duplicates: Math.max(0, qty), updated_at: new Date().toISOString(),
       })),
       { onConflict: 'user_id,sticker_code' }
     );
@@ -361,9 +366,7 @@ export default function Tracker({ data, userEmail }) {
   async function importOwned(codes, { skipHist = false } = {}) {
     const toAdd = codes.filter(c => allCodes.has(c) && !owned.has(c));
     if (!toAdd.length) return 0;
-    const newOwned = new Set(owned);
-    toAdd.forEach(c => newOwned.add(c));
-    setOwned(newOwned);
+    setOwned(prev => { const next = new Set(prev); toAdd.forEach(c => next.add(c)); return next; });
     if (!skipHist) {
       if (toAdd.length === 1) {
         pushHist({ type: 'mark', code: toAdd[0], ...getTeamInfo(toAdd[0], data) });
