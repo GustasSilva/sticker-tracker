@@ -357,7 +357,8 @@ export default function Tracker({ data, userEmail }) {
     await supabase.from('user_progress').upsert(
       entries.map(([code, qty]) => ({
         user_id: userId, sticker_code: code,
-        owned: qty > 0, duplicates: Math.max(0, qty), updated_at: new Date().toISOString(),
+        owned: qty > 0 ? true : owned.has(code),
+        duplicates: Math.max(0, qty), updated_at: new Date().toISOString(),
       })),
       { onConflict: 'user_id,sticker_code' }
     );
@@ -744,30 +745,32 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
     const codes  = Object.keys(parsed).filter(c => allCodes.has(c));
     if (!codes.length) { setPackFeedback('Nenhum código válido encontrado.'); return; }
     setPackSaving(true);
-    const newOnes      = codes.filter(c => !owned.has(c));
-    const alreadyOwned = codes.filter(c =>  owned.has(c));
-    if (newOnes.length) await importOwned(newOnes, { skipHist: true });
-    // duplicates: já possuídas recebem +qty; novas recebem +(qty-1) se apareceram mais de 1x
-    const dupUpdate = {};
-    alreadyOwned.forEach(c => { dupUpdate[c] = (duplicates[c] || 0) + (parsed[c] || 1); });
-    newOnes.filter(c => (parsed[c] || 1) > 1).forEach(c => { dupUpdate[c] = (duplicates[c] || 0) + (parsed[c] - 1); });
-    if (Object.keys(dupUpdate).length) await saveDuplicates(dupUpdate, { skipHist: true });
-    const totalDupAdded = alreadyOwned.reduce((s, c) => s + (parsed[c] || 1), 0)
-                        + newOnes.reduce((s, c) => s + Math.max(0, (parsed[c] || 1) - 1), 0);
-    pushHist({
-      id: 'op_' + Date.now(),
-      type: 'open_pack',
-      count: codes.length,
-      newCount: newOnes.length,
-      dupCount: totalDupAdded,
-      teamSummary: teamSummary(codes, data),
-      codes,
-      newCodes: newOnes,
-      parsedQty: Object.fromEntries(codes.map(c => [c, parsed[c] || 1])),
-    });
-    setPackFeedback(`✓ ${newOnes.length} nova(s) · ${totalDupAdded} repetida(s) registrada(s).`);
-    setPackInput('');
-    setPackSaving(false);
+    try {
+      const newOnes      = codes.filter(c => !owned.has(c));
+      const alreadyOwned = codes.filter(c =>  owned.has(c));
+      if (newOnes.length) await importOwned(newOnes, { skipHist: true });
+      const dupUpdate = {};
+      alreadyOwned.forEach(c => { dupUpdate[c] = (duplicates[c] || 0) + (parsed[c] || 1); });
+      newOnes.filter(c => (parsed[c] || 1) > 1).forEach(c => { dupUpdate[c] = (duplicates[c] || 0) + (parsed[c] - 1); });
+      if (Object.keys(dupUpdate).length) await saveDuplicates(dupUpdate, { skipHist: true });
+      const totalDupAdded = alreadyOwned.reduce((s, c) => s + (parsed[c] || 1), 0)
+                          + newOnes.reduce((s, c) => s + Math.max(0, (parsed[c] || 1) - 1), 0);
+      pushHist({
+        id: 'op_' + Date.now(),
+        type: 'open_pack',
+        count: codes.length,
+        newCount: newOnes.length,
+        dupCount: totalDupAdded,
+        teamSummary: teamSummary(codes, data),
+        codes,
+        newCodes: newOnes,
+        parsedQty: Object.fromEntries(codes.map(c => [c, parsed[c] || 1])),
+      });
+      setPackFeedback(`✓ ${newOnes.length} nova(s) · ${totalDupAdded} repetida(s) registrada(s).`);
+      setPackInput('');
+    } finally {
+      setPackSaving(false);
+    }
   }
 
   const dupCodes = Object.keys(duplicates);
@@ -1324,12 +1327,12 @@ function HistEntry({ entry, data }) {
             <span className="hist-ago">{ago}</span>
           </div>
         </div>
-        {expanded && expandGroups.length > 0 && (
-          <div className="hist-expand-body">
-            {expandGroups.map(g => {
-              const newSet = entry.type === 'open_pack' ? new Set(entry.newCodes || []) : null;
-              const qty    = entry.parsedQty || {};
-              return (
+        {expanded && expandGroups.length > 0 && (() => {
+          const newSet = entry.type === 'open_pack' ? new Set(entry.newCodes || []) : null;
+          const qty    = entry.parsedQty || {};
+          return (
+            <div className="hist-expand-body">
+              {expandGroups.map(g => (
                 <div key={g.key} className="hist-expand-row">
                   {TEAM_ISO[g.key]
                     ? <span className={`fi fi-${TEAM_ISO[g.key]} hist-expand-flag`} />
@@ -1358,10 +1361,10 @@ function HistEntry({ entry, data }) {
                     <span className="hist-expand-nums">{g.codes.map(codeNum).join(' · ')}</span>
                   )}
                 </div>
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          );
+        })()}
       </div>
     );
   }
