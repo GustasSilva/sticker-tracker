@@ -317,7 +317,7 @@ export default function Tracker({ data, userEmail }) {
     const was  = next.has(code);
     if (was) next.delete(code); else next.add(code);
     setOwned(next);
-    pushHist({ type: was ? 'unmark' : 'mark', code, ...getTeamInfo(code, data) });
+    pushHist({ type: was ? 'unmark' : 'mark', code, ...getTeamInfo(code, data), prevOwned: was, prevQty: duplicates[code] || 0 });
     const userId = await getUserId();
     if (!userId) return;
     await supabase.from('user_progress').upsert(
@@ -337,7 +337,7 @@ export default function Tracker({ data, userEmail }) {
     setOwned(newOwned);
     setDuplicates(newDups);
     const histType = totalCount === 0 ? 'unmark' : totalCount === 1 ? 'mark' : 'dup';
-    pushHist({ type: histType, code, ...getTeamInfo(code, data), qty: dups });
+    pushHist({ type: histType, code, ...getTeamInfo(code, data), qty: dups, prevOwned: owned.has(code), prevQty: duplicates[code] || 0 });
     const userId = await getUserId();
     if (!userId) return;
     await supabase.from('user_progress').upsert(
@@ -366,10 +366,11 @@ export default function Tracker({ data, userEmail }) {
     if (!skipHist) {
       if (entries.length === 1) {
         const [code, qty] = entries[0];
-        pushHist({ type: 'dup', code, ...getTeamInfo(code, data), qty });
+        pushHist({ type: 'dup', code, ...getTeamInfo(code, data), qty, prevOwned: owned.has(code), prevQty: duplicates[code] || 0 });
       } else if (entries.length > 1) {
         const codes = entries.map(([c]) => c);
-        pushHist({ id: 'bdp_' + Date.now(), type: 'batch_dup', count: entries.length, teamSummary: teamSummary(codes, data), codes });
+        pushHist({ id: 'bdp_' + Date.now(), type: 'batch_dup', count: entries.length, teamSummary: teamSummary(codes, data), codes,
+          prevDups: Object.fromEntries(entries.map(([c]) => [c, duplicates[c] || 0])) });
       }
     }
     await supabase.from('user_progress').upsert(
@@ -388,7 +389,7 @@ export default function Tracker({ data, userEmail }) {
     setOwned(prev => { const next = new Set(prev); toAdd.forEach(c => next.add(c)); return next; });
     if (!skipHist) {
       if (toAdd.length === 1) {
-        pushHist({ type: 'mark', code: toAdd[0], ...getTeamInfo(toAdd[0], data) });
+        pushHist({ type: 'mark', code: toAdd[0], ...getTeamInfo(toAdd[0], data), prevOwned: false, prevQty: 0 });
       } else {
         pushHist({ id: 'bm_' + Date.now(), type: 'batch_mark', count: toAdd.length, teamSummary: teamSummary(toAdd, data), codes: toAdd });
       }
@@ -410,12 +411,116 @@ export default function Tracker({ data, userEmail }) {
     if (!codes.length) return;
     const userId = await getUserId();
     if (!userId) return;
-    pushHist({ id: 'cd_' + Date.now(), type: 'clear_dups', count: codes.length, teamSummary: teamSummary(codes, data), codes });
+    pushHist({ id: 'cd_' + Date.now(), type: 'clear_dups', count: codes.length, teamSummary: teamSummary(codes, data), codes,
+      prevDups: Object.fromEntries(codes.map(c => [c, duplicates[c]])) });
     setDuplicates({});
     await supabase.from('user_progress').upsert(
       codes.map(c => ({ user_id: userId, sticker_code: c, owned: owned.has(c), duplicates: 0, updated_at: new Date().toISOString() })),
       { onConflict: 'user_id,sticker_code' }
     );
+  }
+
+  async function executeUndo(entry) {
+    const userId = await getUserId();
+    if (!userId) return;
+
+    switch (entry.type) {
+      case 'mark':
+      case 'unmark':
+      case 'dup': {
+        const wasOwned = entry.prevOwned ?? (entry.type !== 'mark');
+        const prevQty  = entry.prevQty  ?? 0;
+        setOwned(prev => { const next = new Set(prev); if (wasOwned) next.add(entry.code); else next.delete(entry.code); return next; });
+        setDuplicates(prev => { const next = { ...prev }; if (prevQty > 0) next[entry.code] = prevQty; else delete next[entry.code]; return next; });
+        await supabase.from('user_progress').upsert(
+          { user_id: userId, sticker_code: entry.code, owned: wasOwned, duplicates: prevQty, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id,sticker_code' }
+        );
+        break;
+      }
+      case 'batch_mark': {
+        const codes = entry.codes || [];
+        setOwned(prev => { const next = new Set(prev); codes.forEach(c => next.delete(c)); return next; });
+        if (codes.length) await supabase.from('user_progress').upsert(
+          codes.map(c => ({ user_id: userId, sticker_code: c, owned: false, duplicates: 0, updated_at: new Date().toISOString() })),
+          { onConflict: 'user_id,sticker_code' }
+        );
+        break;
+      }
+      case 'batch_dup': {
+        const prevDups = entry.prevDups || {};
+        const codes    = entry.codes    || [];
+        setDuplicates(prev => { const next = { ...prev }; codes.forEach(c => { const q = prevDups[c] ?? 0; if (q > 0) next[c] = q; else delete next[c]; }); return next; });
+        if (codes.length) await supabase.from('user_progress').upsert(
+          codes.map(c => ({ user_id: userId, sticker_code: c, owned: true, duplicates: prevDups[c] ?? 0, updated_at: new Date().toISOString() })),
+          { onConflict: 'user_id,sticker_code' }
+        );
+        break;
+      }
+      case 'clear_dups': {
+        const prevDups = entry.prevDups || {};
+        setDuplicates(prev => ({ ...prev, ...prevDups }));
+        const entries2 = Object.entries(prevDups);
+        if (entries2.length) await supabase.from('user_progress').upsert(
+          entries2.map(([c, q]) => ({ user_id: userId, sticker_code: c, owned: true, duplicates: q, updated_at: new Date().toISOString() })),
+          { onConflict: 'user_id,sticker_code' }
+        );
+        break;
+      }
+      case 'open_pack': {
+        const newCodes  = entry.newCodes || [];
+        const prevDups  = entry.prevDups  || {};
+        const allCodes2 = [...new Set([...newCodes, ...Object.keys(prevDups)])];
+        setOwned(prev => { const next = new Set(prev); newCodes.forEach(c => next.delete(c)); return next; });
+        setDuplicates(prev => {
+          const next = { ...prev };
+          for (const c of allCodes2) {
+            if (newCodes.includes(c)) { delete next[c]; }
+            else { const q = prevDups[c] ?? 0; if (q > 0) next[c] = q; else delete next[c]; }
+          }
+          return next;
+        });
+        if (allCodes2.length) await supabase.from('user_progress').upsert(
+          allCodes2.map(c => {
+            const isNew = newCodes.includes(c);
+            return { user_id: userId, sticker_code: c, owned: !isNew, duplicates: isNew ? 0 : (prevDups[c] ?? 0), updated_at: new Date().toISOString() };
+          }),
+          { onConflict: 'user_id,sticker_code' }
+        );
+        break;
+      }
+      case 'trade': {
+        const gotNewCodes = entry.gotNewCodes || [];
+        const prevDups    = entry.prevDups    || {};
+        const allCodes2   = [...new Set([...Object.keys(prevDups), ...gotNewCodes])];
+        setOwned(prev => { const next = new Set(prev); gotNewCodes.forEach(c => next.delete(c)); return next; });
+        setDuplicates(prev => {
+          const next = { ...prev };
+          for (const c of allCodes2) {
+            if (gotNewCodes.includes(c)) { delete next[c]; }
+            else { const q = prevDups[c] ?? 0; if (q > 0) next[c] = q; else delete next[c]; }
+          }
+          return next;
+        });
+        if (allCodes2.length) await supabase.from('user_progress').upsert(
+          allCodes2.map(c => {
+            const isNew = gotNewCodes.includes(c);
+            return { user_id: userId, sticker_code: c, owned: !isNew, duplicates: isNew ? 0 : (prevDups[c] ?? 0), updated_at: new Date().toISOString() };
+          }),
+          { onConflict: 'user_id,sticker_code' }
+        );
+        break;
+      }
+      default: break;
+    }
+
+    setHistory(h => h.map(e => e.id === entry.id ? { ...e, isUndo: true } : e));
+    const ts = (entry.ts instanceof Date ? entry.ts : new Date(entry.ts)).toISOString();
+    const payload = { ...entry, isUndo: true, ts };
+    supabase.from('history_events').upsert(
+      { id: String(entry.id), user_id: userId, type: entry.type, payload, created_at: ts },
+      { onConflict: 'id,user_id' }
+    ).then(({ error }) => { if (error) console.error('[undo] upsert:', error); });
   }
 
   if (loading) return <div className="loading">Carregando coleção...</div>;
@@ -466,7 +571,7 @@ export default function Tracker({ data, userEmail }) {
         🕐
       </button>
 
-      {historyOpen && <HistoryDrawer history={history} data={data} onClose={() => setHistoryOpen(false)} />}
+      {historyOpen && <HistoryDrawer history={history} data={data} onClose={() => setHistoryOpen(false)} onUndo={executeUndo} />}
     </div>
   );
 }
@@ -764,9 +869,10 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
     const codes  = Object.keys(parsed).filter(c => allCodes.has(c));
     if (!codes.length) { setPackFeedback('Nenhum código válido encontrado.'); return; }
     setPackSaving(true);
+    const newOnes      = codes.filter(c => !owned.has(c));
+    const alreadyOwned = codes.filter(c =>  owned.has(c));
+    const packPrevDups = Object.fromEntries(alreadyOwned.map(c => [c, duplicates[c] || 0]));
     try {
-      const newOnes      = codes.filter(c => !owned.has(c));
-      const alreadyOwned = codes.filter(c =>  owned.has(c));
       if (newOnes.length) await importOwned(newOnes, { skipHist: true });
       const dupUpdate = {};
       alreadyOwned.forEach(c => { dupUpdate[c] = (duplicates[c] || 0) + (parsed[c] || 1); });
@@ -784,6 +890,7 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
         codes,
         newCodes: newOnes,
         parsedQty: Object.fromEntries(codes.map(c => [c, parsed[c] || 1])),
+        prevDups: packPrevDups,
       });
       setPackFeedback(`✓ ${newOnes.length} nova(s) · ${totalDupAdded} repetida(s) registrada(s).`);
       setPackInput('');
@@ -798,6 +905,8 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
     const gaveCodes  = Object.keys(parsedGave).filter(c => allCodes.has(c));
     const gotCodes   = Object.keys(parsedGot).filter(c => allCodes.has(c));
     if (!gaveCodes.length && !gotCodes.length) { setTradeFeedback('Nenhum código válido encontrado.'); return; }
+    const tradeAllCodes = [...new Set([...gaveCodes, ...gotCodes])];
+    const tradePrevDups = Object.fromEntries(tradeAllCodes.map(c => [c, duplicates[c] || 0]));
     setTradeSaving(true);
     try {
       const gaveIgnored = [];
@@ -827,6 +936,7 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
           gotNewCodes: newOnes,
           codes: [...effectiveGave, ...gotCodes],
           teamSummary: teamSummary([...effectiveGave, ...gotCodes], data),
+          prevDups: tradePrevDups,
         });
       }
       const pl = (n, s) => n !== 1 ? s : '';
@@ -1332,7 +1442,9 @@ function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates })
 
 // ─── History Drawer ───────────────────────────────────────────────────────────
 
-function HistoryDrawer({ history, data, onClose }) {
+function HistoryDrawer({ history, data, onClose, onUndo }) {
+  const [pendingUndo, setPendingUndo] = useState(null);
+
   const groups = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const yesterday = new Date(today.getTime() - 86400000);
@@ -1346,6 +1458,13 @@ function HistoryDrawer({ history, data, onClose }) {
     }
     return [...map.entries()].map(([label, entries]) => ({ label, entries }));
   }, [history]);
+
+  const firstUndoableId = useMemo(() => history.find(e => !e.isUndo)?.id, [history]);
+
+  function confirmUndo() {
+    if (pendingUndo) onUndo(pendingUndo);
+    setPendingUndo(null);
+  }
 
   return (
     <>
@@ -1362,21 +1481,48 @@ function HistoryDrawer({ history, data, onClose }) {
             : groups.map(g => (
                 <div key={g.label} className="hist-date-group">
                   <div className="hist-date-label">{g.label}</div>
-                  {g.entries.map(e => <HistEntry key={e.id} entry={e} data={data} />)}
+                  {g.entries.map(e => (
+                    <HistEntry
+                      key={e.id}
+                      entry={e}
+                      data={data}
+                      isFirst={e.id === firstUndoableId}
+                      onUndo={setPendingUndo}
+                    />
+                  ))}
                 </div>
               ))
           }
         </div>
       </div>
+      {pendingUndo && (
+        <div className="undo-modal-backdrop" onClick={() => setPendingUndo(null)}>
+          <div className="undo-modal" onClick={e => e.stopPropagation()}>
+            <p className="undo-modal-title">Desfazer operação?</p>
+            <p className="undo-modal-note">Esta ação não pode ser desfeita automaticamente. Para reverter, seria necessário repetir a operação manualmente.</p>
+            <div className="undo-modal-btns">
+              <button className="undo-modal-cancel" onClick={() => setPendingUndo(null)}>Cancelar</button>
+              <button className="undo-modal-confirm" onClick={confirmUndo}>Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
-const HistEntry = memo(function HistEntry({ entry, data }) {
+const HistEntry = memo(function HistEntry({ entry, data, isFirst, onUndo }) {
   const [expanded, setExpanded] = useState(false);
   const ago  = formatAgo(entry.ts);
   const name = entry.code ? (PLAYER_NAMES[entry.code] || '') : '';
   const iso  = entry.teamCode ? TEAM_ISO[entry.teamCode] : null;
+
+  const undoBtn = isFirst && !entry.isUndo
+    ? <button className="hist-undo-btn" title="Desfazer" onClick={() => onUndo(entry)}>↩</button>
+    : null;
+  const undoBadge = entry.isUndo
+    ? <span className="hist-badge hist-badge-undone">Desfeito</span>
+    : null;
 
   const BATCH_TYPES = ['batch_mark', 'batch_dup', 'open_pack', 'clear_dups', 'trade'];
   if (BATCH_TYPES.includes(entry.type)) {
@@ -1405,6 +1551,8 @@ const HistEntry = memo(function HistEntry({ entry, data }) {
             <span className="hist-detail">{entry.teamSummary}</span>
           </div>
           <div className="hist-batch-right">
+            {undoBtn}
+            {undoBadge}
             {hasDetail && (
               <button className="hist-expand-btn" onClick={() => setExpanded(x => !x)}>
                 {expanded ? '▴' : '▾'}
@@ -1507,6 +1655,8 @@ const HistEntry = memo(function HistEntry({ entry, data }) {
         {name && <span className="hist-name">{name}</span>}
       </div>
       <span className={`hist-badge ${badgeCls}`}>{actionLbl}</span>
+      {undoBadge}
+      {undoBtn}
       <span className="hist-ago">{ago}</span>
     </div>
   );

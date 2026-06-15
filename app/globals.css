@@ -728,6 +728,38 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 
 .hist-ago { font-size: 0.64rem; color: #2a3a58; white-space: nowrap; flex-shrink: 0; }
 
+.hist-badge-undone { background: rgba(100,100,120,0.18); color: #7a8aaa; }
+
+.hist-undo-btn {
+  background: none; border: 1px solid #2a4070; border-radius: 5px;
+  color: #7fa8d4; font-size: 0.78rem; padding: 1px 7px; cursor: pointer;
+  line-height: 1.5; flex-shrink: 0; transition: background 0.15s;
+}
+.hist-undo-btn:hover { background: rgba(127,168,212,0.15); color: #a8c8f0; }
+
+.undo-modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+}
+.undo-modal {
+  background: #111e38; border: 1px solid #2a4070; border-radius: 12px;
+  padding: 22px 24px; max-width: 320px; width: 90%; display: flex; flex-direction: column; gap: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.undo-modal-title { font-size: 1rem; font-weight: 700; color: #e8eaf0; }
+.undo-modal-note { font-size: 0.78rem; color: #6a7e9a; line-height: 1.45; }
+.undo-modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+.undo-modal-cancel {
+  background: none; border: 1px solid #2a4070; border-radius: 7px;
+  color: #7fa8d4; padding: 6px 16px; cursor: pointer; font-size: 0.82rem;
+}
+.undo-modal-cancel:hover { background: rgba(127,168,212,0.1); }
+.undo-modal-confirm {
+  background: #1e3a6e; border: 1px solid #3a5fa0; border-radius: 7px;
+  color: #a8c8f0; padding: 6px 16px; cursor: pointer; font-size: 0.82rem; font-weight: 600;
+}
+.undo-modal-confirm:hover { background: #2a4e8a; }
+
 @media (max-width: 540px) {
   .stickers { grid-template-columns: repeat(4, 1fr); }
   .tab-btn { font-size: 0.72rem; padding: 8px 4px; }
