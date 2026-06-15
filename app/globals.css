@@ -507,6 +507,13 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .trocas-hint code { background: #0d1e36; border-radius: 4px; padding: 1px 6px; color: #aab; font-family: monospace; }
 .trocas-empty { color: #556; font-size: 0.88rem; margin: 0; }
 .trocas-feedback { color: #00c853; font-size: 0.83rem; margin: 0; }
+.trade-inputs { display: flex; gap: 10px; }
+.trade-col { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.trade-label { font-size: 0.78rem; font-weight: 600; color: #7fa8d4; }
+.trade-expand-section { margin-bottom: 4px; }
+.trade-expand-section:last-child { margin-bottom: 0; }
+.trade-expand-label { font-size: 0.68rem; font-weight: 700; color: #6a7e9a; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+@media (max-width: 500px) { .trade-inputs { flex-direction: column; } }
 .trocas-textarea {
   background: #0d1e36; border: 1px solid #1e3055; border-radius: 8px;
   color: #e8eaf0; padding: 12px; font-size: 0.88rem; font-family: monospace;
@@ -700,6 +707,7 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .dot-green { background: #00c853; box-shadow: 0 0 5px rgba(0,200,83,0.4); }
 .dot-amber { background: #ffb300; box-shadow: 0 0 5px rgba(255,179,0,0.4); }
 .dot-red   { background: #ff5252; box-shadow: 0 0 5px rgba(255,82,82,0.4); }
+.dot-blue  { background: #60a5fa; box-shadow: 0 0 5px rgba(96,165,250,0.4); }
 
 .hist-flag { width: 1.15em; height: 0.82em; border-radius: 1px; flex-shrink: 0; }
 .hist-flag-placeholder { font-size: 0.85rem; line-height: 1; flex-shrink: 0; }

@@ -732,9 +732,13 @@ function StickerBox({ code, owned, onToggle, foil, special, dupQty, teamColor, o
 // ─── Trocas ───────────────────────────────────────────────────────────────────
 
 function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplicates, clearDuplicates, importOwned, pushHist }) {
-  const [packInput,    setPackInput]    = useState('');
-  const [packSaving,   setPackSaving]   = useState(false);
-  const [packFeedback, setPackFeedback] = useState('');
+  const [packInput,     setPackInput]     = useState('');
+  const [packSaving,    setPackSaving]    = useState(false);
+  const [packFeedback,  setPackFeedback]  = useState('');
+  const [gaveInput,     setGaveInput]     = useState('');
+  const [gotInput,      setGotInput]      = useState('');
+  const [tradeSaving,   setTradeSaving]   = useState(false);
+  const [tradeFeedback, setTradeFeedback] = useState('');
   const [input,    setInput]    = useState('');
   const [saving,   setSaving]   = useState(false);
   const [feedback, setFeedback] = useState('');
@@ -758,7 +762,7 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
       pushHist({
         id: 'op_' + Date.now(),
         type: 'open_pack',
-        count: codes.length,
+        count: newOnes.length + totalDupAdded,
         newCount: newOnes.length,
         dupCount: totalDupAdded,
         teamSummary: teamSummary(codes, data),
@@ -770,6 +774,55 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
       setPackInput('');
     } finally {
       setPackSaving(false);
+    }
+  }
+
+  async function handleTrade() {
+    const parsedGave = parseStickersText(gaveInput);
+    const parsedGot  = parseStickersText(gotInput);
+    const gaveCodes  = Object.keys(parsedGave).filter(c => allCodes.has(c));
+    const gotCodes   = Object.keys(parsedGot).filter(c => allCodes.has(c));
+    if (!gaveCodes.length && !gotCodes.length) { setTradeFeedback('Nenhum código válido encontrado.'); return; }
+    setTradeSaving(true);
+    try {
+      const gaveIgnored = [];
+      const dupChanges  = {};
+      for (const code of gaveCodes) {
+        const base = dupChanges[code] ?? (duplicates[code] || 0);
+        if (base > 0) { dupChanges[code] = base - 1; }
+        else { gaveIgnored.push(code); }
+      }
+      const newOnes  = gotCodes.filter(c => !owned.has(c));
+      const gotOwned = gotCodes.filter(c =>  owned.has(c));
+      if (newOnes.length) await importOwned(newOnes, { skipHist: true });
+      for (const code of gotOwned) {
+        const base = dupChanges[code] ?? (duplicates[code] || 0);
+        dupChanges[code] = base + 1;
+      }
+      if (Object.keys(dupChanges).length) await saveDuplicates(dupChanges, { skipHist: true });
+      const effectiveGave = gaveCodes.filter(c => !gaveIgnored.includes(c));
+      if (effectiveGave.length || gotCodes.length) {
+        pushHist({
+          id: 'tr_' + Date.now(),
+          type: 'trade',
+          gaveCount: effectiveGave.length,
+          gotCount: gotCodes.length,
+          gaveCodes: effectiveGave,
+          gotCodes,
+          gotNewCodes: newOnes,
+          codes: [...effectiveGave, ...gotCodes],
+          teamSummary: teamSummary([...effectiveGave, ...gotCodes], data),
+        });
+      }
+      const pl = (n, s) => n !== 1 ? s : '';
+      const parts = [];
+      if (effectiveGave.length) parts.push(`${effectiveGave.length} entregue${pl(effectiveGave.length, 's')}`);
+      if (gotCodes.length)      parts.push(`${gotCodes.length} recebida${pl(gotCodes.length, 's')}`);
+      if (gaveIgnored.length)   parts.push(`${gaveIgnored.length} sem rep. (ignorada${pl(gaveIgnored.length, 's')})`);
+      setTradeFeedback('✓ ' + parts.join(' · '));
+      setGaveInput(''); setGotInput('');
+    } finally {
+      setTradeSaving(false);
     }
   }
 
@@ -813,6 +866,32 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
         <button className="trocas-primary-btn" onClick={handleOpenPack}
           disabled={packSaving || !packInput.trim()}>
           {packSaving ? 'Registrando...' : '📦 Registrar figurinhas'}
+        </button>
+      </section>
+
+      <section className="trocas-section">
+        <h3>🤝 Registrar Troca</h3>
+        <p className="trocas-hint">Cole as figurinhas que você entregou e recebeu. Repetidas são ajustadas automaticamente; sem duplicata disponível, a entrega é ignorada.</p>
+        <div className="trade-inputs">
+          <div className="trade-col">
+            <span className="trade-label">➡️ Entreguei</span>
+            <textarea className="trocas-textarea" value={gaveInput}
+              onChange={e => { setGaveInput(e.target.value); setTradeFeedback(''); }}
+              rows={3} placeholder="BRA 6, MEX 5..." />
+            <ImportPreview text={gaveInput} allCodes={allCodes} owned={owned} duplicates={duplicates} type="trade_give" />
+          </div>
+          <div className="trade-col">
+            <span className="trade-label">⬅️ Recebi</span>
+            <textarea className="trocas-textarea" value={gotInput}
+              onChange={e => { setGotInput(e.target.value); setTradeFeedback(''); }}
+              rows={3} placeholder="IRN 9, FWC 3..." />
+            <ImportPreview text={gotInput} allCodes={allCodes} owned={owned} duplicates={duplicates} type="trade_got" />
+          </div>
+        </div>
+        {tradeFeedback && <p className="trocas-feedback">{tradeFeedback}</p>}
+        <button className="trocas-primary-btn" onClick={handleTrade}
+          disabled={tradeSaving || (!gaveInput.trim() && !gotInput.trim())}>
+          {tradeSaving ? 'Registrando...' : '🤝 Registrar Troca'}
         </button>
       </section>
 
@@ -1130,6 +1209,19 @@ function ImportPreview({ text, allCodes, owned, duplicates, type }) {
       if (newCount  > 0) parts.push(`${newCount} nova${pl(newCount) ? 's' : ''}`);
       if (totalDups > 0) parts.push(`${totalDups} repetida${pl(totalDups) ? 's' : ''}`);
       msg = parts.length ? parts.join(' · ') : `${valid.length} figurinha${pl(valid.length) ? 's' : ''} identificadas`;
+    } else if (type === 'trade_give') {
+      const canGive = valid.filter(c => (duplicates?.[c] || 0) > 0).length;
+      const noStock = valid.length - canGive;
+      const parts   = [`${canGive} entregável${pl(canGive) ? 'is' : ''}`];
+      if (noStock > 0) parts.push(`${noStock} sem repetidas (ignorada${pl(noStock) ? 's' : ''})`);
+      msg = parts.join(' · ');
+    } else if (type === 'trade_got') {
+      const newOnes = valid.filter(c => !owned.has(c)).length;
+      const dupOnes = valid.length - newOnes;
+      const parts   = [];
+      if (newOnes > 0) parts.push(`${newOnes} nova${pl(newOnes) ? 's' : ''}`);
+      if (dupOnes > 0) parts.push(`${dupOnes} vira${pl(dupOnes) ? 'm' : ''} repetida${pl(dupOnes) ? 's' : ''}`);
+      msg = parts.length ? parts.join(' · ') : `${valid.length} figurinha${pl(valid.length) ? 's' : ''} identificadas`;
     } else if (type === 'compare_dup') {
       const canGet = valid.filter(c => !owned.has(c)).length;
       msg = `${valid.length} figurinha${pl(valid.length) ? 's' : ''} identificadas · ${canGet} que você não tem (pode pegar)`;
@@ -1299,7 +1391,7 @@ function HistEntry({ entry, data }) {
   const name = entry.code ? (PLAYER_NAMES[entry.code] || '') : '';
   const iso  = entry.teamCode ? TEAM_ISO[entry.teamCode] : null;
 
-  const BATCH_TYPES = ['batch_mark', 'batch_dup', 'open_pack', 'clear_dups'];
+  const BATCH_TYPES = ['batch_mark', 'batch_dup', 'open_pack', 'clear_dups', 'trade'];
   if (BATCH_TYPES.includes(entry.type)) {
     const hasDetail  = entry.codes?.length > 0 && data;
     const expandGroups = expanded && hasDetail ? groupByTeam(entry.codes, data) : [];
@@ -1308,6 +1400,13 @@ function HistEntry({ entry, data }) {
     if (entry.type === 'batch_mark')  { dotCls = 'dot-green';  actionTxt = `${entry.count} coladas importadas`; }
     else if (entry.type === 'batch_dup')   { dotCls = 'dot-amber';  actionTxt = `${entry.count} repetidas importadas`; }
     else if (entry.type === 'open_pack')   { dotCls = 'dot-green';  actionTxt = `📦 ${entry.count} figurinhas — ${entry.newCount} novas · ${entry.dupCount} repetidas`; }
+    else if (entry.type === 'trade') {
+      dotCls = 'dot-blue';
+      const tp = [];
+      if (entry.gaveCount > 0) tp.push(`${entry.gaveCount} entregue${entry.gaveCount !== 1 ? 's' : ''}`);
+      if (entry.gotCount  > 0) tp.push(`${entry.gotCount} recebida${entry.gotCount !== 1 ? 's' : ''}`);
+      actionTxt = `🤝 Troca — ${tp.join(' · ')}`;
+    }
     else                                   { dotCls = 'dot-red';    actionTxt = `🗑 ${entry.count} repetidas zeradas`; }
 
     return (
@@ -1328,6 +1427,42 @@ function HistEntry({ entry, data }) {
           </div>
         </div>
         {expanded && expandGroups.length > 0 && (() => {
+          if (entry.type === 'trade') {
+            const gaveGroups = groupByTeam(entry.gaveCodes || [], data);
+            const gotGroups  = groupByTeam(entry.gotCodes  || [], data);
+            const gotNewSet  = new Set(entry.gotNewCodes || []);
+            const renderRow = (g, renderChip) => (
+              <div key={g.key} className="hist-expand-row">
+                {TEAM_ISO[g.key]
+                  ? <span className={`fi fi-${TEAM_ISO[g.key]} hist-expand-flag`} />
+                  : <span className="hist-expand-flag-txt">{g.flag || g.key}</span>
+                }
+                <span className="hist-expand-team">{g.key}</span>
+                <span className="hist-expand-chips">{g.codes.map(c => renderChip(c))}</span>
+              </div>
+            );
+            return (
+              <div className="hist-expand-body">
+                {gaveGroups.length > 0 && (
+                  <div className="trade-expand-section">
+                    <div className="trade-expand-label">➡️ Entregou</div>
+                    {gaveGroups.map(g => renderRow(g, c => (
+                      <span key={c} className="pack-chip pack-chip-dup">{codeNum(c)}</span>
+                    )))}
+                  </div>
+                )}
+                {gotGroups.length > 0 && (
+                  <div className="trade-expand-section">
+                    <div className="trade-expand-label">⬅️ Recebeu</div>
+                    {gotGroups.map(g => renderRow(g, c => gotNewSet.has(c)
+                      ? <span key={c} className="pack-chip pack-chip-new">{codeNum(c)}</span>
+                      : <span key={c} className="pack-chip pack-chip-dup">{codeNum(c)}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
           const newSet = entry.type === 'open_pack' ? new Set(entry.newCodes || []) : null;
           const qty    = entry.parsedQty || {};
           return (
