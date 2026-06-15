@@ -431,7 +431,7 @@ export default function Tracker({ data, userEmail }) {
       </nav>
 
       {tab === 'colecao'  && <ColecaoTab data={data} owned={owned} duplicates={duplicates} toggle={toggle} setCount={setCount} />}
-      {tab === 'trocas'   && <TrocasTab  data={data} owned={owned} duplicates={duplicates} missingCodes={missingCodes} allCodes={allCodes} saveDuplicates={saveDuplicates} clearDuplicates={clearDuplicates} />}
+      {tab === 'trocas'   && <TrocasTab  data={data} owned={owned} duplicates={duplicates} missingCodes={missingCodes} allCodes={allCodes} saveDuplicates={saveDuplicates} clearDuplicates={clearDuplicates} importOwned={importOwned} />}
       {tab === 'comparar' && <CompararTab data={data} owned={owned} duplicates={duplicates} allCodes={allCodes} />}
       {tab === 'config'   && <ConfigTab   allCodes={allCodes} owned={owned} duplicates={duplicates} importOwned={importOwned} saveDuplicates={saveDuplicates} />}
 
@@ -723,11 +723,32 @@ function StickerBox({ code, owned, onToggle, foil, special, dupQty, teamColor, o
 
 // ─── Trocas ───────────────────────────────────────────────────────────────────
 
-function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplicates, clearDuplicates }) {
+function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplicates, clearDuplicates, importOwned }) {
+  const [packInput,    setPackInput]    = useState('');
+  const [packSaving,   setPackSaving]   = useState(false);
+  const [packFeedback, setPackFeedback] = useState('');
   const [input,    setInput]    = useState('');
   const [saving,   setSaving]   = useState(false);
   const [feedback, setFeedback] = useState('');
   const [copied,   setCopied]   = useState('');
+
+  async function handleOpenPack() {
+    const parsed = parseStickersText(packInput);
+    const codes  = Object.keys(parsed).filter(c => allCodes.has(c));
+    if (!codes.length) { setPackFeedback('Nenhum código válido encontrado.'); return; }
+    setPackSaving(true);
+    const newOnes      = codes.filter(c => !owned.has(c));
+    const alreadyOwned = codes.filter(c =>  owned.has(c));
+    if (newOnes.length) await importOwned(newOnes);
+    if (alreadyOwned.length) {
+      const dupUpdate = {};
+      alreadyOwned.forEach(c => { dupUpdate[c] = (duplicates[c] || 0) + 1; });
+      await saveDuplicates(dupUpdate);
+    }
+    setPackFeedback(`✓ ${newOnes.length} nova(s) · ${alreadyOwned.length} repetida(s) registrada(s).`);
+    setPackInput('');
+    setPackSaving(false);
+  }
 
   const dupCodes = Object.keys(duplicates);
   const dupTotal = Object.values(duplicates).reduce((s, q) => s + q, 0);
@@ -758,6 +779,20 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
 
   return (
     <div className="trocas-wrap">
+      <section className="trocas-section">
+        <h3>📦 Registrar abertura de envelope</h3>
+        <p className="trocas-hint">Cole os códigos das figurinhas abertas. Novas são marcadas como coladas, as que você já tem viram +1 repetida automaticamente.</p>
+        <textarea className="trocas-textarea" value={packInput}
+          onChange={e => { setPackInput(e.target.value); setPackFeedback(''); }}
+          rows={4} placeholder="BRA 6, MEX 5, IRN 7 14, FWC 3..." />
+        <ImportPreview text={packInput} allCodes={allCodes} owned={owned} duplicates={duplicates} type="open_pack" />
+        {packFeedback && <p className="trocas-feedback">{packFeedback}</p>}
+        <button className="trocas-primary-btn" onClick={handleOpenPack}
+          disabled={packSaving || !packInput.trim()}>
+          {packSaving ? 'Registrando...' : '📦 Registrar figurinhas'}
+        </button>
+      </section>
+
       <section className="trocas-section">
         <h3>➕ Adicionar repetidas</h3>
         <p className="trocas-hint">Formatos aceitos: <code>MEX 5(2x)</code> ou <code>BRA: 13, 14</code></p>
@@ -995,6 +1030,13 @@ function ImportPreview({ text, allCodes, owned, duplicates, type }) {
       const updating    = duplicates ? valid.filter(c => (duplicates[c] || 0) > 0).length : 0;
       msg = `${valid.length} figurinha${pl(valid.length) ? 's' : ''} · ${totalCopies} repetida${pl(totalCopies) ? 's' : ''} no total`;
       if (updating > 0) msg += ` · ${updating} já cadastrada${pl(updating) ? 's' : ''} (serão atualizadas)`;
+    } else if (type === 'open_pack') {
+      const newOnes = valid.filter(c => !owned.has(c)).length;
+      const dups    = valid.filter(c =>  owned.has(c)).length;
+      const parts   = [];
+      if (newOnes > 0) parts.push(`${newOnes} nova${pl(newOnes) ? 's' : ''}`);
+      if (dups    > 0) parts.push(`${dups} repetida${pl(dups) ? 's' : ''}`);
+      msg = parts.length ? parts.join(' · ') : `${valid.length} figurinha${pl(valid.length) ? 's' : ''} identificadas`;
     } else if (type === 'compare_dup') {
       const canGet = valid.filter(c => !owned.has(c)).length;
       msg = `${valid.length} figurinha${pl(valid.length) ? 's' : ''} identificadas · ${canGet} que você não tem (pode pegar)`;
