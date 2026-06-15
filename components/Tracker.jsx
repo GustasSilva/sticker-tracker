@@ -744,21 +744,23 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
     const newOnes      = codes.filter(c => !owned.has(c));
     const alreadyOwned = codes.filter(c =>  owned.has(c));
     if (newOnes.length) await importOwned(newOnes, { skipHist: true });
-    if (alreadyOwned.length) {
-      const dupUpdate = {};
-      alreadyOwned.forEach(c => { dupUpdate[c] = (duplicates[c] || 0) + 1; });
-      await saveDuplicates(dupUpdate, { skipHist: true });
-    }
+    // duplicates: já possuídas recebem +qty; novas recebem +(qty-1) se apareceram mais de 1x
+    const dupUpdate = {};
+    alreadyOwned.forEach(c => { dupUpdate[c] = (duplicates[c] || 0) + (parsed[c] || 1); });
+    newOnes.filter(c => (parsed[c] || 1) > 1).forEach(c => { dupUpdate[c] = (duplicates[c] || 0) + (parsed[c] - 1); });
+    if (Object.keys(dupUpdate).length) await saveDuplicates(dupUpdate, { skipHist: true });
+    const totalDupAdded = alreadyOwned.reduce((s, c) => s + (parsed[c] || 1), 0)
+                        + newOnes.reduce((s, c) => s + Math.max(0, (parsed[c] || 1) - 1), 0);
     pushHist({
       id: 'op_' + Date.now(),
       type: 'open_pack',
       count: codes.length,
       newCount: newOnes.length,
-      dupCount: alreadyOwned.length,
+      dupCount: totalDupAdded,
       teamSummary: teamSummary(codes, data),
       codes,
     });
-    setPackFeedback(`✓ ${newOnes.length} nova(s) · ${alreadyOwned.length} repetida(s) registrada(s).`);
+    setPackFeedback(`✓ ${newOnes.length} nova(s) · ${totalDupAdded} repetida(s) registrada(s).`);
     setPackInput('');
     setPackSaving(false);
   }
@@ -1044,11 +1046,14 @@ function ImportPreview({ text, allCodes, owned, duplicates, type }) {
       msg = `${valid.length} figurinha${pl(valid.length) ? 's' : ''} · ${totalCopies} repetida${pl(totalCopies) ? 's' : ''} no total`;
       if (updating > 0) msg += ` · ${updating} já cadastrada${pl(updating) ? 's' : ''} (serão atualizadas)`;
     } else if (type === 'open_pack') {
-      const newOnes = valid.filter(c => !owned.has(c)).length;
-      const dups    = valid.filter(c =>  owned.has(c)).length;
-      const parts   = [];
-      if (newOnes > 0) parts.push(`${newOnes} nova${pl(newOnes) ? 's' : ''}`);
-      if (dups    > 0) parts.push(`${dups} repetida${pl(dups) ? 's' : ''}`);
+      const newUnique = valid.filter(c => !owned.has(c));
+      const dupCodes  = valid.filter(c =>  owned.has(c));
+      const newCount  = newUnique.length;
+      const totalDups = dupCodes.reduce((s, c) => s + (parsed[c] || 1), 0)
+                      + newUnique.reduce((s, c) => s + Math.max(0, (parsed[c] || 1) - 1), 0);
+      const parts = [];
+      if (newCount  > 0) parts.push(`${newCount} nova${pl(newCount) ? 's' : ''}`);
+      if (totalDups > 0) parts.push(`${totalDups} repetida${pl(totalDups) ? 's' : ''}`);
       msg = parts.length ? parts.join(' · ') : `${valid.length} figurinha${pl(valid.length) ? 's' : ''} identificadas`;
     } else if (type === 'compare_dup') {
       const canGet = valid.filter(c => !owned.has(c)).length;
