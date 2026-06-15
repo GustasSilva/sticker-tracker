@@ -693,6 +693,7 @@ h1 { text-align: center; font-size: 1.8rem; color: #ffd700; text-shadow: 0 0 20p
 .hist-expand-flag-txt { font-size: 0.72rem; color: #7fa8d4; flex-shrink: 0; }
 .hist-expand-team { color: #7fa8d4; font-weight: 600; min-width: 36px; flex-shrink: 0; }
 .hist-expand-nums { color: #9bb8d4; word-break: break-all; line-height: 1.5; }
+.hist-expand-chips { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
 
 /* dots */
 .hist-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }

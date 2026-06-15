@@ -762,6 +762,8 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
       dupCount: totalDupAdded,
       teamSummary: teamSummary(codes, data),
       codes,
+      newCodes: newOnes,
+      parsedQty: Object.fromEntries(codes.map(c => [c, parsed[c] || 1])),
     });
     setPackFeedback(`✓ ${newOnes.length} nova(s) · ${totalDupAdded} repetida(s) registrada(s).`);
     setPackInput('');
@@ -1324,16 +1326,40 @@ function HistEntry({ entry, data }) {
         </div>
         {expanded && expandGroups.length > 0 && (
           <div className="hist-expand-body">
-            {expandGroups.map(g => (
-              <div key={g.key} className="hist-expand-row">
-                {TEAM_ISO[g.key]
-                  ? <span className={`fi fi-${TEAM_ISO[g.key]} hist-expand-flag`} />
-                  : <span className="hist-expand-flag-txt">{g.flag || g.key}</span>
-                }
-                <span className="hist-expand-team">{g.key}</span>
-                <span className="hist-expand-nums">{g.codes.map(codeNum).join(' · ')}</span>
-              </div>
-            ))}
+            {expandGroups.map(g => {
+              const newSet = entry.type === 'open_pack' ? new Set(entry.newCodes || []) : null;
+              const qty    = entry.parsedQty || {};
+              return (
+                <div key={g.key} className="hist-expand-row">
+                  {TEAM_ISO[g.key]
+                    ? <span className={`fi fi-${TEAM_ISO[g.key]} hist-expand-flag`} />
+                    : <span className="hist-expand-flag-txt">{g.flag || g.key}</span>
+                  }
+                  <span className="hist-expand-team">{g.key}</span>
+                  {newSet ? (
+                    <span className="hist-expand-chips">
+                      {g.codes.map(c => {
+                        const isNew = newSet.has(c);
+                        const q     = qty[c] || 1;
+                        const num   = codeNum(c);
+                        if (isNew) {
+                          const extra = q - 1;
+                          return (
+                            <span key={c} className="pack-chip-group">
+                              <span className="pack-chip pack-chip-new">{num}</span>
+                              {extra > 0 && <span className="pack-chip pack-chip-dup">{num}{extra > 1 && <sup>×{extra}</sup>}</span>}
+                            </span>
+                          );
+                        }
+                        return <span key={c} className="pack-chip pack-chip-dup">{num}{q > 1 && <sup>×{q}</sup>}</span>;
+                      })}
+                    </span>
+                  ) : (
+                    <span className="hist-expand-nums">{g.codes.map(codeNum).join(' · ')}</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
