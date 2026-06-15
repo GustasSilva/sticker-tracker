@@ -757,10 +757,7 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
   const [gotInput,      setGotInput]      = useState('');
   const [tradeSaving,   setTradeSaving]   = useState(false);
   const [tradeFeedback, setTradeFeedback] = useState('');
-  const [input,    setInput]    = useState('');
-  const [saving,   setSaving]   = useState(false);
-  const [feedback, setFeedback] = useState('');
-  const [copied,   setCopied]   = useState('');
+  const [copied, setCopied] = useState('');
 
   async function handleOpenPack() {
     const parsed = parseStickersText(packInput);
@@ -847,21 +844,6 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
   const dupCodes = Object.keys(duplicates);
   const dupTotal = Object.values(duplicates).reduce((s, q) => s + q, 0);
 
-  async function markDuplicates() {
-    if (!input.trim()) return;
-    setSaving(true); setFeedback('');
-    const parsed = parseStickersText(input);
-    const valid  = {};
-    for (const [code, qty] of Object.entries(parsed)) {
-      if (allCodes.has(code)) valid[code] = qty;
-    }
-    const count = Object.keys(valid).length;
-    if (!count) { setFeedback('Nenhum código válido. Use: MEX 5, BRA: 13, CAN 3(2x)'); setSaving(false); return; }
-    await saveDuplicates(valid);
-    setInput(''); setFeedback(`✓ ${count} figurinha(s) marcada(s).`);
-    setSaving(false);
-  }
-
   function copy(text, key) {
     navigator.clipboard.writeText(text);
     setCopied(key);
@@ -910,19 +892,6 @@ function TrocasTab({ data, owned, duplicates, missingCodes, allCodes, saveDuplic
         <button className="trocas-primary-btn" onClick={handleTrade}
           disabled={tradeSaving || (!gaveInput.trim() && !gotInput.trim())}>
           {tradeSaving ? 'Registrando...' : '🤝 Registrar Troca'}
-        </button>
-      </section>
-
-      <section className="trocas-section">
-        <h3>➕ Adicionar repetidas</h3>
-        <p className="trocas-hint">Formatos aceitos: <code>MEX 5(2x)</code> ou <code>BRA: 13, 14</code></p>
-        <p className="trocas-hint">Figurinhas com repetidas são marcadas como coladas automaticamente.</p>
-        <textarea className="trocas-textarea" value={input} onChange={e => { setInput(e.target.value); setFeedback(''); }}
-          placeholder="Pan: 9(2x), Bra: 13(1x), MEX 5, IRN 7 7..." rows={4} />
-        <ImportPreview text={input} allCodes={allCodes} owned={owned} duplicates={duplicates} type="dup" />
-        {feedback && <p className="trocas-feedback">{feedback}</p>}
-        <button className="trocas-primary-btn" onClick={markDuplicates} disabled={saving || !input.trim()}>
-          {saving ? 'Salvando...' : '📌 Marcar como repetidas'}
         </button>
       </section>
 
