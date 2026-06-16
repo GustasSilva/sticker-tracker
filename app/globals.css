@@ -148,8 +148,13 @@ h1 {
 .stickers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px; }
 @media (min-width: 400px) { .stickers { grid-template-columns: repeat(5, 1fr); } }
 
-/* FWC / CC cards — tamanho similar às figurinhas dos times */
-.special-stickers { grid-template-columns: repeat(auto-fill, minmax(74px, 86px)); justify-content: start; }
+/* FWC / CC cards — mesmo tamanho das figurinhas dos times */
+.special-stickers { grid-template-columns: repeat(4, 1fr); }
+@media (min-width: 400px) { .special-stickers { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 700px) {
+  /* No desktop o card é full-width — usa auto-fill com tamanho fixo igual ao dos times */
+  .special-stickers { grid-template-columns: repeat(auto-fill, minmax(64px, 80px)); }
+}
 
 .sticker-label {
   display: block;
@@ -298,7 +303,7 @@ h1 {
   border-color: var(--tc);
   box-shadow: 0 0 16px color-mix(in srgb, var(--tc) 65%, transparent);
 }
-.foil-sticker.is-checked .sticker-box::before { opacity: 0.65; }
+.foil-sticker.is-checked .sticker-box::before { opacity: 0.65; animation-duration: 2.2s; }
 .foil-sticker.is-checked .sticker-num-big { color: #fff; }
 
 /* Team photo (position 13) — also uses team color */
