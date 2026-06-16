@@ -148,9 +148,8 @@ h1 {
 .stickers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px; }
 @media (min-width: 400px) { .stickers { grid-template-columns: repeat(5, 1fr); } }
 
-/* FWC / CC cards — same column layout as team cards, centered */
-.special-stickers { grid-template-columns: repeat(4, 1fr); max-width: 420px; margin-left: auto; margin-right: auto; }
-@media (min-width: 400px) { .special-stickers { grid-template-columns: repeat(5, 1fr); } }
+/* FWC / CC cards — tamanho similar às figurinhas dos times */
+.special-stickers { grid-template-columns: repeat(auto-fill, minmax(74px, 86px)); justify-content: start; }
 
 .sticker-label {
   display: block;
@@ -264,40 +263,42 @@ h1 {
   0%   { filter: hue-rotate(0deg); }
   100% { filter: hue-rotate(360deg); }
 }
+/* Desmarcada: base escura, arco-íris sutil */
 .foil-sticker .sticker-box {
   background: linear-gradient(135deg,
-    color-mix(in srgb, var(--tc) 5%,  #0d1e36) 0%,
-    color-mix(in srgb, var(--tc) 30%, #c8d8f0) 50%,
-    color-mix(in srgb, var(--tc) 5%,  #0d1e36) 100%
+    color-mix(in srgb, var(--tc) 6%, #0d1e36) 0%,
+    color-mix(in srgb, var(--tc) 14%, #0d1e36) 50%,
+    color-mix(in srgb, var(--tc) 6%, #0d1e36) 100%
   );
-  border-color: color-mix(in srgb, var(--tc) 55%, #1e3055);
+  border-color: color-mix(in srgb, var(--tc) 30%, #1e3055);
 }
 .foil-sticker .sticker-box::before {
   content: '';
   position: absolute; inset: 0; border-radius: inherit;
   background: linear-gradient(125deg,
-    rgba(255,0,80,0.55)   0%,
-    rgba(255,160,0,0.55)  20%,
-    rgba(200,255,0,0.55)  40%,
-    rgba(0,255,180,0.55)  60%,
-    rgba(0,140,255,0.55)  80%,
-    rgba(180,0,255,0.55) 100%
+    rgba(255,0,80,0.4)   0%,
+    rgba(255,160,0,0.4)  20%,
+    rgba(200,255,0,0.4)  40%,
+    rgba(0,255,180,0.4)  60%,
+    rgba(0,140,255,0.4)  80%,
+    rgba(180,0,255,0.4) 100%
   );
   mix-blend-mode: screen;
   animation: foil-hue 4s linear infinite;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.22;
 }
+/* Marcada: base brilhante, arco-íris intenso — diferença clara */
 .foil-sticker.is-checked .sticker-box {
   background: linear-gradient(135deg,
-    color-mix(in srgb, var(--tc) 20%, #0d1e36) 0%,
+    color-mix(in srgb, var(--tc) 22%, #0d1e36) 0%,
     color-mix(in srgb, var(--tc) 80%, #ffffff) 50%,
-    color-mix(in srgb, var(--tc) 20%, #0d1e36) 100%
+    color-mix(in srgb, var(--tc) 22%, #0d1e36) 100%
   );
   border-color: var(--tc);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--tc) 70%, transparent), 0 0 6px rgba(255,255,255,0.2);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--tc) 65%, transparent);
 }
-.foil-sticker.is-checked .sticker-box::before { opacity: 0.75; }
+.foil-sticker.is-checked .sticker-box::before { opacity: 0.65; }
 .foil-sticker.is-checked .sticker-num-big { color: #fff; }
 
 /* Team photo (position 13) — also uses team color */
