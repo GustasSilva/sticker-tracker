@@ -107,3 +107,41 @@ for (const [code, players] of Object.entries(TEAM_PLAYERS)) {
     if (players[i]) PLAYER_NAMES[`${code}${i + 3}`] = players[i];
   }
 }
+
+// FWC — Página Inicial / FIFA World Cup History
+PLAYER_NAMES['00']    = 'Logo Panini';
+PLAYER_NAMES['FWC1']  = 'Troféu da Copa';
+PLAYER_NAMES['FWC2']  = 'Troféu da Copa';
+PLAYER_NAMES['FWC3']  = 'Mascotes';
+PLAYER_NAMES['FWC4']  = 'Slogan Oficial';
+PLAYER_NAMES['FWC5']  = 'Bola Oficial';
+PLAYER_NAMES['FWC6']  = 'Sede — Canadá';
+PLAYER_NAMES['FWC7']  = 'Sede — México';
+PLAYER_NAMES['FWC8']  = 'Sede — USA';
+PLAYER_NAMES['FWC9']  = 'Itália 1934';
+PLAYER_NAMES['FWC10'] = 'Uruguai 1950';
+PLAYER_NAMES['FWC11'] = 'Alemanha 1954';
+PLAYER_NAMES['FWC12'] = 'Brasil 1962';
+PLAYER_NAMES['FWC13'] = 'Alemanha 1974';
+PLAYER_NAMES['FWC14'] = 'Argentina 1986';
+PLAYER_NAMES['FWC15'] = 'Brasil 1994';
+PLAYER_NAMES['FWC16'] = 'Brasil 2002';
+PLAYER_NAMES['FWC17'] = 'Itália 2006';
+PLAYER_NAMES['FWC18'] = 'Alemanha 2014';
+PLAYER_NAMES['FWC19'] = 'Argentina 2022';
+
+// CC — Coca-Cola Bonus Stickers
+PLAYER_NAMES['CC1']  = 'Lamine Yamal';
+PLAYER_NAMES['CC2']  = 'Joshua Kimmich';
+PLAYER_NAMES['CC3']  = 'Harry Kane';
+PLAYER_NAMES['CC4']  = 'Santiago Giménez';
+PLAYER_NAMES['CC5']  = 'Joško Gvardiol';
+PLAYER_NAMES['CC6']  = 'Federico Valverde';
+PLAYER_NAMES['CC7']  = 'Jefferson Lerma';
+PLAYER_NAMES['CC8']  = 'Enner Valencia';
+PLAYER_NAMES['CC9']  = 'Gabriel Magalhães';
+PLAYER_NAMES['CC10'] = 'Virgil van Dijk';
+PLAYER_NAMES['CC11'] = 'Alphonso Davies';
+PLAYER_NAMES['CC12'] = 'Emiliano Martínez';
+PLAYER_NAMES['CC13'] = 'Raúl Jiménez';
+PLAYER_NAMES['CC14'] = 'Lautaro Martínez';
