@@ -693,7 +693,7 @@ function SpecialCard({ title, codes, owned, duplicates, toggle, extraClass, filt
         <div className="stickers special-stickers">
           {displayed.map(code => (
             <StickerBox key={code} code={code} owned={owned.has(code)} onToggle={() => toggle(code)}
-              dupQty={duplicates[code] || 0} teamColor={cardColor}
+              foil={true} dupQty={duplicates[code] || 0} teamColor={cardColor}
               onLongPress={() => onLongPress(code, sectionCode, sectionName)} />
           ))}
         </div>

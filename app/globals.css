@@ -148,8 +148,9 @@ h1 {
 .stickers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px; }
 @media (min-width: 400px) { .stickers { grid-template-columns: repeat(5, 1fr); } }
 
-/* FWC / CC cards are full-width: keep stickers compact with auto-fill */
-.special-stickers { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); }
+/* FWC / CC cards — same column layout as team cards, centered */
+.special-stickers { grid-template-columns: repeat(4, 1fr); max-width: 420px; margin-left: auto; margin-right: auto; }
+@media (min-width: 400px) { .special-stickers { grid-template-columns: repeat(5, 1fr); } }
 
 .sticker-label {
   display: block;
@@ -258,56 +259,45 @@ h1 {
   pointer-events: none;
 }
 
-/* Foil (escudo) sticker — rainbow holographic effect */
-@keyframes foil-sweep {
-  0%   { background-position: 200% center; }
-  100% { background-position: -200% center; }
-}
+/* Foil (escudo/CC/FWC) sticker — rainbow holographic effect */
 @keyframes foil-hue {
-  0%   { filter: hue-rotate(0deg)   brightness(0.9); }
-  100% { filter: hue-rotate(360deg) brightness(1.1); }
+  0%   { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
 }
 .foil-sticker .sticker-box {
-  background: linear-gradient(110deg,
-    color-mix(in srgb, var(--tc) 5%,  #0d1e36) 15%,
-    color-mix(in srgb, var(--tc) 20%, #0d1e36) 35%,
-    color-mix(in srgb, var(--tc) 35%, #c8d8f0) 50%,
-    color-mix(in srgb, var(--tc) 20%, #0d1e36) 65%,
-    color-mix(in srgb, var(--tc) 5%,  #0d1e36) 85%
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--tc) 5%,  #0d1e36) 0%,
+    color-mix(in srgb, var(--tc) 30%, #c8d8f0) 50%,
+    color-mix(in srgb, var(--tc) 5%,  #0d1e36) 100%
   );
-  background-size: 280% auto;
-  border-color: color-mix(in srgb, var(--tc) 50%, #1e3055);
-  animation: foil-sweep 4s linear infinite;
+  border-color: color-mix(in srgb, var(--tc) 55%, #1e3055);
 }
 .foil-sticker .sticker-box::before {
   content: '';
   position: absolute; inset: 0; border-radius: inherit;
   background: linear-gradient(125deg,
-    rgba(255,0,80,0.5)   0%,
-    rgba(255,160,0,0.5)  20%,
-    rgba(200,255,0,0.5)  40%,
-    rgba(0,255,180,0.5)  60%,
-    rgba(0,140,255,0.5)  80%,
-    rgba(180,0,255,0.5) 100%
+    rgba(255,0,80,0.55)   0%,
+    rgba(255,160,0,0.55)  20%,
+    rgba(200,255,0,0.55)  40%,
+    rgba(0,255,180,0.55)  60%,
+    rgba(0,140,255,0.55)  80%,
+    rgba(180,0,255,0.55) 100%
   );
   mix-blend-mode: screen;
-  animation: foil-hue 5s linear infinite;
+  animation: foil-hue 4s linear infinite;
   pointer-events: none;
-  opacity: 0.45;
+  opacity: 0.5;
 }
 .foil-sticker.is-checked .sticker-box {
-  background: linear-gradient(110deg,
-    color-mix(in srgb, var(--tc) 25%, #0d1e36) 10%,
-    color-mix(in srgb, var(--tc) 60%, #ffffff) 35%,
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--tc) 20%, #0d1e36) 0%,
     color-mix(in srgb, var(--tc) 80%, #ffffff) 50%,
-    color-mix(in srgb, var(--tc) 60%, #ffffff) 65%,
-    color-mix(in srgb, var(--tc) 25%, #0d1e36) 90%
+    color-mix(in srgb, var(--tc) 20%, #0d1e36) 100%
   );
-  background-size: 280% auto;
   border-color: var(--tc);
   box-shadow: 0 0 18px color-mix(in srgb, var(--tc) 70%, transparent), 0 0 6px rgba(255,255,255,0.2);
 }
-.foil-sticker.is-checked .sticker-box::before { opacity: 0.7; }
+.foil-sticker.is-checked .sticker-box::before { opacity: 0.75; }
 .foil-sticker.is-checked .sticker-num-big { color: #fff; }
 
 /* Team photo (position 13) — also uses team color */
