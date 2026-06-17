@@ -292,7 +292,11 @@ export default function Tracker({ data, userEmail }) {
 
       if (histEvRes.error) console.error('[hist] load:', histEvRes.error);
       const richEntries = (histEvRes.data || []).map(row => ({ ...row.payload, id: row.id, ts: new Date(row.created_at) }));
-      const coveredCodes = new Set(richEntries.filter(e => e.code).map(e => e.code));
+      const coveredCodes = new Set();
+      for (const e of richEntries) {
+        if (e.code) coveredCodes.add(e.code);
+        if (Array.isArray(e.codes)) e.codes.forEach(c => coveredCodes.add(c));
+      }
       const fallbackEntries = (histFallbackRes.data || [])
         .map(row => buildHistEntry(row, data))
         .filter(e => !coveredCodes.has(e.code));
