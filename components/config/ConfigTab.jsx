@@ -66,35 +66,37 @@ export default function ConfigTab({ allCodes, owned, duplicates, importOwned, sa
         </section>
       )}
 
-      <section className="trocas-section">
-        <h3>✅ Importar coladas</h3>
-        <p className="trocas-hint">Cole a lista de figurinhas que você tem. Apenas as novas serão marcadas.</p>
-        <p className="trocas-hint"><em>Formato:</em> <code>BRA: 1 · 2 · 3</code> ou <code>MEX 5 BRA3 FWC 1</code></p>
-        <textarea className="trocas-textarea" value={ownedInput}
-          onChange={e => { setOwnedInput(e.target.value); setMsg('owned', ''); }}
-          rows={4} placeholder="BRA: 1 · 2 · 3, MEX 5, FWC 1..." />
-        <ImportPreview text={ownedInput} allCodes={allCodes} owned={owned} type="owned" />
-        {msgs.owned && <p className="trocas-feedback">{msgs.owned}</p>}
-        <button className="trocas-primary-btn" onClick={handleImportOwned}
-          disabled={busy === 'owned' || !ownedInput.trim()}>
-          {busy === 'owned' ? 'Importando...' : '✅ Marcar como coladas'}
-        </button>
-      </section>
+      <div className="config-import-cols">
+        <section className="trocas-section">
+          <h3>✅ Importar coladas</h3>
+          <p className="trocas-hint">Cole a lista de figurinhas que você tem. Apenas as novas serão marcadas.</p>
+          <p className="trocas-hint"><em>Formato:</em> <code>BRA: 1 · 2 · 3</code> ou <code>MEX 5 BRA3 FWC 1</code></p>
+          <textarea className="trocas-textarea" value={ownedInput}
+            onChange={e => { setOwnedInput(e.target.value); setMsg('owned', ''); }}
+            rows={4} placeholder="BRA: 1 · 2 · 3, MEX 5, FWC 1..." />
+          <ImportPreview text={ownedInput} allCodes={allCodes} owned={owned} type="owned" />
+          {msgs.owned && <p className="trocas-feedback">{msgs.owned}</p>}
+          <button className="trocas-primary-btn" onClick={handleImportOwned}
+            disabled={busy === 'owned' || !ownedInput.trim()}>
+            {busy === 'owned' ? 'Importando...' : '✅ Marcar como coladas'}
+          </button>
+        </section>
 
-      <section className="trocas-section">
-        <h3>🔄 Importar repetidas</h3>
-        <p className="trocas-hint">Figurinhas com repetidas são automaticamente marcadas como coladas.</p>
-        <p className="trocas-hint"><em>Formato:</em> <code>BRA 3(2x)</code> ou <code>MEX: 5 6(3x)</code> · Repetir o número também funciona: <code>IRN 7 7 14</code></p>
-        <textarea className="trocas-textarea" value={dupInput}
-          onChange={e => { setDupInput(e.target.value); setMsg('dup', ''); }}
-          rows={4} placeholder="BRA 3(2x), MEX: 5 6(3x), IRN 7 7 14..." />
-        <ImportPreview text={dupInput} allCodes={allCodes} owned={owned} duplicates={duplicates} type="dup" />
-        {msgs.dup && <p className="trocas-feedback">{msgs.dup}</p>}
-        <button className="trocas-primary-btn" onClick={handleImportDup}
-          disabled={busy === 'dup' || !dupInput.trim()}>
-          {busy === 'dup' ? 'Importando...' : '📌 Importar repetidas'}
-        </button>
-      </section>
+        <section className="trocas-section">
+          <h3>🔄 Importar repetidas</h3>
+          <p className="trocas-hint">Figurinhas com repetidas são automaticamente marcadas como coladas.</p>
+          <p className="trocas-hint"><em>Formato:</em> <code>BRA 3(2x)</code> ou <code>MEX: 5 6(3x)</code> · Repetir o número também funciona: <code>IRN 7 7 14</code></p>
+          <textarea className="trocas-textarea" value={dupInput}
+            onChange={e => { setDupInput(e.target.value); setMsg('dup', ''); }}
+            rows={4} placeholder="BRA 3(2x), MEX: 5 6(3x), IRN 7 7 14..." />
+          <ImportPreview text={dupInput} allCodes={allCodes} owned={owned} duplicates={duplicates} type="dup" />
+          {msgs.dup && <p className="trocas-feedback">{msgs.dup}</p>}
+          <button className="trocas-primary-btn" onClick={handleImportDup}
+            disabled={busy === 'dup' || !dupInput.trim()}>
+            {busy === 'dup' ? 'Importando...' : '📌 Importar repetidas'}
+          </button>
+        </section>
+      </div>
 
       <section className="trocas-section">
         <h3>❓ Importar faltantes</h3>

@@ -41,8 +41,16 @@ export default function Tracker({ data, userEmail }) {
       </div>
 
       <nav className="tab-nav">
-        {[['colecao','📖 Coleção'],['trocas','🔄 Trocas'],['comparar','🔍 Comparar'],['config','⚙️']].map(([id, label]) => (
-          <button key={id} className={`tab-btn${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>{label}</button>
+        {[
+          ['colecao',  '📖', 'Coleção'],
+          ['trocas',   '🔄', 'Trocas'],
+          ['comparar', '🔍', 'Comparar'],
+          ['config',   '⚙️', 'Config'],
+        ].map(([id, icon, label]) => (
+          <button key={id} className={`tab-btn${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>
+            <span className="tab-icon">{icon}</span>
+            <span className="tab-label">{label}</span>
+          </button>
         ))}
       </nav>
 
