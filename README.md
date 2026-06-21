@@ -2,6 +2,8 @@
 
 Acompanhe o preenchimento do seu álbum Panini da Copa do Mundo FIFA 2026 direto do navegador: marque figurinhas, controle repetidas e faltantes, registre envelopes e trocas, e compare sua coleção com a de amigos.
 
+![Tela de Coleção do Sticker Tracker](docs/screenshot.png)
+
 ## 🔗 Acesso
 
 **App no ar:** **https://sticker-tracker2026.vercel.app**
