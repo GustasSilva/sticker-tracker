@@ -43,7 +43,7 @@ export default function Tracker({ data, userEmail }) {
       <nav className="tab-nav">
         {[
           ['colecao',  '📖', 'Coleção'],
-          ['trocas',   '🔄', 'Trocas'],
+          ['trocas',   '🔄', 'Registrar'],
           ['comparar', '🔍', 'Comparar'],
           ['config',   '⚙️', 'Config'],
         ].map(([id, icon, label]) => (
@@ -54,12 +54,18 @@ export default function Tracker({ data, userEmail }) {
         ))}
       </nav>
 
-      {tab === 'colecao'  && <ColecaoTab  data={data} owned={owned} duplicates={duplicates} toggle={toggle} setCount={setCount} />}
-      {tab === 'trocas'   && <TrocasTab   data={data} owned={owned} duplicates={duplicates} missingCodes={missingCodes} allCodes={allCodes} saveDuplicates={saveDuplicates} clearDuplicates={clearDuplicates} importOwned={importOwned} pushHist={pushHist} />}
-      {tab === 'comparar' && <CompararTab data={data} owned={owned} duplicates={duplicates} allCodes={allCodes} />}
-      {tab === 'config'   && <ConfigTab   allCodes={allCodes} owned={owned} duplicates={duplicates} importOwned={importOwned} saveDuplicates={saveDuplicates} userEmail={userEmail} />}
+      <div className="tab-panel" key={tab}>
+        {tab === 'colecao'  && <ColecaoTab  data={data} owned={owned} duplicates={duplicates} toggle={toggle} setCount={setCount} />}
+        {tab === 'trocas'   && <TrocasTab   data={data} owned={owned} duplicates={duplicates} missingCodes={missingCodes} allCodes={allCodes} saveDuplicates={saveDuplicates} clearDuplicates={clearDuplicates} importOwned={importOwned} pushHist={pushHist} />}
+        {tab === 'comparar' && <CompararTab data={data} owned={owned} duplicates={duplicates} allCodes={allCodes} />}
+        {tab === 'config'   && <ConfigTab   allCodes={allCodes} owned={owned} duplicates={duplicates} importOwned={importOwned} saveDuplicates={saveDuplicates} userEmail={userEmail} />}
+      </div>
 
-      <button className="history-fab" onClick={() => setHistoryOpen(true)} title="Histórico de alterações">
+      <button
+        className={`history-fab${tab !== 'colecao' ? ' history-fab-alt' : ''}`}
+        onClick={() => setHistoryOpen(true)}
+        title="Histórico de alterações"
+      >
         🕐
       </button>
 

@@ -1,4 +1,4 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
   --font-display: 'Archivo', 'Segoe UI', sans-serif;
   --font-body: 'Hanken Grotesk', 'Segoe UI', Arial, sans-serif;
@@ -551,7 +551,13 @@ h1 {
   background: #0d1e36; border: 1px solid #1e3055; border-radius: 8px;
   color: #e8eaf0; padding: 12px; font-size: 0.86rem; font-family: var(--font-mono);
   resize: vertical; outline: none; transition: border-color 0.2s; line-height: 1.5;
+  /* grip de redimensionar visível (o nativo some no escuro) */
+  background-image: repeating-linear-gradient(135deg, transparent 0 3px, rgba(255,255,255,0.32) 3px 4px);
+  background-repeat: no-repeat;
+  background-position: right 5px bottom 5px;
+  background-size: 12px 12px;
 }
+.trocas-textarea::-webkit-resizer { background: transparent; }
 .trocas-textarea:focus { border-color: #ffd700; }
 .trocas-textarea::placeholder { color: #445; }
 .trocas-primary-btn {
@@ -559,7 +565,7 @@ h1 {
   padding: 12px; font-size: 0.95rem; font-weight: bold; cursor: pointer; transition: background 0.2s;
 }
 .trocas-primary-btn:hover:not(:disabled) { background: #ffe14d; }
-.trocas-primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.trocas-primary-btn:disabled { background: #1a2740; color: #5f7299; cursor: not-allowed; opacity: 1; }
 .trocas-copy-btn {
   background: #1e3055; color: #e8eaf0; border: 1px solid #2a4070;
   border-radius: 8px; padding: 9px 16px; font-size: 0.83rem; cursor: pointer;
@@ -828,8 +834,13 @@ h1 {
     bottom: calc(74px + env(safe-area-inset-bottom, 0px));
     right: 16px;
   }
+  /* fora da Coleção o FAB cairia sobre o botão de ação primário — esconde no mobile */
+  .history-fab-alt { display: none; }
   body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* Comparar: entradas do parceiro empilham no mobile */
+.comparar-input-cols { display: flex; flex-direction: column; gap: 14px; }
 
 /* ---- Desktop: layout improvements ---- */
 @media (min-width: 700px) {
@@ -839,7 +850,31 @@ h1 {
     grid-template-columns: 1fr 1fr;
     gap: 14px;
   }
+  /* Comparar: repetidas + faltantes do parceiro lado a lado, mesma altura */
+  .comparar-input-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: stretch;
+  }
+  /* textarea preenche o espaço pra as bases dos dois cards alinharem */
+  .comparar-input-cols .trocas-textarea { flex: 1; }
 }
+
+/* ---- Interaction polish: feedback tátil + troca de aba fluida ---- */
+button { -webkit-user-select: none; user-select: none; }
+
+/* press snappy (escala leve ao apertar) nos botões interativos */
+.tab-btn, .filter-bar button, .collapse-all-btn, .comparar-tab,
+.trocas-primary-btn, .trocas-copy-btn, .auth-btn, .auth-tab,
+.google-btn, .config-logout-btn {
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.1s ease;
+}
+button:not(:disabled):active { transform: scale(0.96); }
+
+/* entrada suave ao trocar de aba */
+.tab-panel { animation: tabIn 0.2s ease; }
+@keyframes tabIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ---- Respect reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
@@ -850,4 +885,6 @@ h1 {
   .team-complete .team-header { animation: none; }
   #total-bar, .team-progress-fill, .jump-chip-bar span { transition: none; }
   .history-drawer { animation: none; }
+  .tab-panel { animation: none; }
+  button:not(:disabled):active { transform: none; }
 }

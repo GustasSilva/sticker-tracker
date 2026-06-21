@@ -57,24 +57,26 @@ export default function CompararTab({ data, owned, duplicates, allCodes }) {
         Você tem <strong>{owned.size}</strong> figurinhas coladas e <strong>{dupCount}</strong> repetidas cadastradas.
       </div>
 
-      <section className="trocas-section">
-        <h3>📋 Repetidas do parceiro</h3>
-        <p className="trocas-hint">O que <strong>ele tem pra dar</strong> — você verá o que pode pegar.</p>
-        <p className="trocas-hint"><em>Formato:</em> BRA: 3 · 4, MEX 5(2x), FWC 1</p>
-        <textarea className="trocas-textarea" value={theirDups}
-          onChange={e => { setTheirDups(e.target.value); setResult(null); }}
-          rows={4} placeholder="BRA: 3 · 4, MEX 5(2x), FWC 1..." />
-        <ImportPreview text={theirDups} allCodes={allCodes} owned={owned} duplicates={duplicates} type="compare_dup" />
-      </section>
+      <div className="comparar-input-cols">
+        <section className="trocas-section">
+          <h3>📋 Repetidas do parceiro</h3>
+          <p className="trocas-hint">O que <strong>ele tem pra dar</strong> — você verá o que pode pegar.</p>
+          <p className="trocas-hint"><em>Formato:</em> BRA: 3 · 4, MEX 5(2x), FWC 1</p>
+          <textarea className="trocas-textarea" value={theirDups}
+            onChange={e => { setTheirDups(e.target.value); setResult(null); }}
+            rows={4} placeholder="BRA: 3 · 4, MEX 5(2x), FWC 1..." />
+          <ImportPreview text={theirDups} allCodes={allCodes} owned={owned} duplicates={duplicates} type="compare_dup" />
+        </section>
 
-      <section className="trocas-section">
-        <h3>❓ Faltantes do parceiro <span className="opt-badge">opcional</span></h3>
-        <p className="trocas-hint">O que <strong>ele precisa</strong> — você verá o que pode oferecer das suas repetidas.</p>
-        <textarea className="trocas-textarea" value={theirMis}
-          onChange={e => { setTheirMis(e.target.value); setResult(null); }}
-          rows={4} placeholder="BRA: 5 · 6 · 7, GER 2, ARG 14..." />
-        <ImportPreview text={theirMis} allCodes={allCodes} owned={owned} duplicates={duplicates} type="compare_missing" />
-      </section>
+        <section className="trocas-section">
+          <h3>❓ Faltantes do parceiro <span className="opt-badge">opcional</span></h3>
+          <p className="trocas-hint">O que <strong>ele precisa</strong> — você verá o que pode oferecer das suas repetidas.</p>
+          <textarea className="trocas-textarea" value={theirMis}
+            onChange={e => { setTheirMis(e.target.value); setResult(null); }}
+            rows={4} placeholder="BRA: 5 · 6 · 7, GER 2, ARG 14..." />
+          <ImportPreview text={theirMis} allCodes={allCodes} owned={owned} duplicates={duplicates} type="compare_missing" />
+        </section>
+      </div>
 
       <button className="trocas-primary-btn" onClick={compare} disabled={!theirDups.trim()}>
         🤝 Calcular match
