@@ -3,7 +3,7 @@ import { memo, useState } from 'react';
 import { PLAYER_NAMES, TEAM_ISO } from '@/data/players';
 import { formatAgo, groupByTeam, codeNum } from '@/utils/stickers';
 
-const BATCH_TYPES = ['batch_mark', 'batch_dup', 'open_pack', 'clear_dups', 'trade'];
+const BATCH_TYPES = ['batch_mark', 'batch_dup', 'open_pack', 'clear_dups', 'trade', 'reset_owned', 'reset_dups'];
 
 const HistEntry = memo(function HistEntry({ entry, data, isFirst, onUndo }) {
   const [expanded, setExpanded] = useState(false);
@@ -33,6 +33,8 @@ const HistEntry = memo(function HistEntry({ entry, data, isFirst, onUndo }) {
       if (entry.gotCount  > 0) tp.push(`${entry.gotCount} recebida${entry.gotCount !== 1 ? 's' : ''}`);
       actionTxt = `🤝 Troca — ${tp.join(' · ')}`;
     }
+    else if (entry.type === 'reset_owned') { dotCls = 'dot-red'; actionTxt = `🗑 Coleção resetada — ${entry.count} desmarcada${entry.count !== 1 ? 's' : ''}`; }
+    else if (entry.type === 'reset_dups')  { dotCls = 'dot-red'; actionTxt = `🗑 Repetidas zeradas — ${entry.qty} removida${entry.qty !== 1 ? 's' : ''}`; }
     else { dotCls = 'dot-red'; actionTxt = `🗑 ${entry.count} repetidas zeradas`; }
 
     return (

@@ -19,7 +19,10 @@ export default function HistoryDrawer({ history, data, onClose, onUndo }) {
     return [...map.entries()].map(([label, entries]) => ({ label, entries }));
   }, [history]);
 
-  const firstUndoableId = useMemo(() => history.find(e => !e.isUndo)?.id, [history]);
+  const firstUndoableId = useMemo(
+    () => history.find(e => !e.isUndo && e.type !== 'reset_owned' && e.type !== 'reset_dups')?.id,
+    [history]
+  );
 
   function confirmUndo() {
     if (pendingUndo) onUndo(pendingUndo);

@@ -3,14 +3,32 @@ import { useState } from 'react';
 import { parseStickersText } from '@/utils/stickers';
 import ImportPreview from '@/components/trocas/ImportPreview';
 
-export default function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates, userEmail }) {
+export default function ConfigTab({ allCodes, owned, duplicates, importOwned, saveDuplicates, resetOwned, resetDuplicates, userEmail }) {
   const [ownedInput, setOwnedInput] = useState('');
   const [dupInput,   setDupInput]   = useState('');
   const [misInput,   setMisInput]   = useState('');
   const [busy, setBusy]  = useState('');
   const [msgs, setMsgs]  = useState({});
+  const [confirm, setConfirm] = useState(null);
+
+  const ownedCount = owned.size;
+  const dupTotal   = Object.values(duplicates).reduce((s, q) => s + q, 0);
 
   function setMsg(k, v) { setMsgs(m => ({ ...m, [k]: v })); }
+
+  async function handleReset() {
+    const kind = confirm;
+    setConfirm(null);
+    setBusy('reset');
+    if (kind === 'owned') {
+      const n = await resetOwned();
+      setMsg('reset', `✓ ${n} figurinha(s) desmarcada(s).`);
+    } else {
+      const n = await resetDuplicates();
+      setMsg('reset', `✓ ${n} repetida(s) zerada(s).`);
+    }
+    setBusy('');
+  }
 
   async function handleImportOwned() {
     setBusy('owned');
@@ -112,6 +130,41 @@ export default function ConfigTab({ allCodes, owned, duplicates, importOwned, sa
           {busy === 'mis' ? 'Importando...' : '🚀 Marcar tudo exceto faltantes'}
         </button>
       </section>
+
+      <section className="trocas-section config-danger">
+        <h3>⚠️ Resetar coleção</h3>
+        <p className="trocas-hint">Remove marcações de uma vez. Esta ação <strong>não pode ser desfeita</strong>.</p>
+        {msgs.reset && <p className="trocas-feedback">{msgs.reset}</p>}
+        <div className="config-reset-btns">
+          <button className="trocas-danger-btn config-reset-btn" onClick={() => setConfirm('dups')}
+            disabled={busy === 'reset' || dupTotal === 0}>
+            🔄 Zerar repetidas{dupTotal > 0 ? ` (${dupTotal})` : ''}
+          </button>
+          <button className="trocas-danger-btn config-reset-btn" onClick={() => setConfirm('owned')}
+            disabled={busy === 'reset' || ownedCount === 0}>
+            🗑 Zerar marcadas{ownedCount > 0 ? ` (${ownedCount})` : ''}
+          </button>
+        </div>
+      </section>
+
+      {confirm && (
+        <div className="undo-modal-backdrop" onClick={() => setConfirm(null)}>
+          <div className="undo-modal" onClick={e => e.stopPropagation()}>
+            <p className="undo-modal-title">
+              {confirm === 'owned' ? 'Zerar todas as marcadas?' : 'Zerar todas as repetidas?'}
+            </p>
+            <p className="undo-modal-note">
+              {confirm === 'owned'
+                ? `${ownedCount} figurinha(s) marcada(s) serão desmarcadas (repetidas incluídas). Não é possível desfazer.`
+                : `${dupTotal} repetida(s) serão zeradas. As figurinhas continuam marcadas como coladas. Não é possível desfazer.`}
+            </p>
+            <div className="undo-modal-btns">
+              <button className="undo-modal-cancel" onClick={() => setConfirm(null)}>Cancelar</button>
+              <button className="undo-modal-confirm" onClick={handleReset}>Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

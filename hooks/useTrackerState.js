@@ -204,6 +204,31 @@ export default function useTrackerState(data) {
     );
   }
 
+  async function resetOwned() {
+    const count = owned.size;
+    if (!count) return 0;
+    const userId = await getUserId();
+    if (!userId) return 0;
+    pushHist({ id: 'ro_' + Date.now(), type: 'reset_owned', count });
+    setOwned(new Set());
+    setDuplicates({});
+    await supabase.from('user_progress').delete().eq('user_id', userId);
+    return count;
+  }
+
+  async function resetDuplicates() {
+    const total = Object.values(duplicates).reduce((s, q) => s + q, 0);
+    if (!total) return 0;
+    const userId = await getUserId();
+    if (!userId) return 0;
+    pushHist({ id: 'rd_' + Date.now(), type: 'reset_dups', qty: total });
+    setDuplicates({});
+    await supabase.from('user_progress')
+      .update({ duplicates: 0, updated_at: new Date().toISOString() })
+      .eq('user_id', userId).gt('duplicates', 0);
+    return total;
+  }
+
   async function executeUndo(entry) {
     const userId = await getUserId();
     if (!userId) return;
@@ -310,6 +335,6 @@ export default function useTrackerState(data) {
   return {
     owned, duplicates, history, loading,
     allCodes, missingCodes, totalAll,
-    pushHist, toggle, setCount, saveDuplicates, importOwned, clearDuplicates, executeUndo,
+    pushHist, toggle, setCount, saveDuplicates, importOwned, clearDuplicates, resetOwned, resetDuplicates, executeUndo,
   };
 }

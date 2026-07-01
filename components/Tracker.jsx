@@ -11,7 +11,7 @@ export default function Tracker({ data, userEmail }) {
   const {
     owned, duplicates, history, loading,
     allCodes, missingCodes, totalAll,
-    pushHist, toggle, setCount, saveDuplicates, importOwned, clearDuplicates, executeUndo,
+    pushHist, toggle, setCount, saveDuplicates, importOwned, clearDuplicates, resetOwned, resetDuplicates, executeUndo,
   } = useTrackerState(data);
 
   const [tab,         setTab]         = useState('colecao');
@@ -58,7 +58,7 @@ export default function Tracker({ data, userEmail }) {
         {tab === 'colecao'  && <ColecaoTab  data={data} owned={owned} duplicates={duplicates} toggle={toggle} setCount={setCount} />}
         {tab === 'trocas'   && <TrocasTab   data={data} owned={owned} duplicates={duplicates} missingCodes={missingCodes} allCodes={allCodes} saveDuplicates={saveDuplicates} clearDuplicates={clearDuplicates} importOwned={importOwned} pushHist={pushHist} />}
         {tab === 'comparar' && <CompararTab data={data} owned={owned} duplicates={duplicates} allCodes={allCodes} />}
-        {tab === 'config'   && <ConfigTab   allCodes={allCodes} owned={owned} duplicates={duplicates} importOwned={importOwned} saveDuplicates={saveDuplicates} userEmail={userEmail} />}
+        {tab === 'config'   && <ConfigTab   allCodes={allCodes} owned={owned} duplicates={duplicates} importOwned={importOwned} saveDuplicates={saveDuplicates} resetOwned={resetOwned} resetDuplicates={resetDuplicates} userEmail={userEmail} />}
       </div>
 
       <button
