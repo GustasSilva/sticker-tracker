@@ -7,6 +7,7 @@ import StickerBox from '@/components/stickers/StickerBox';
 export default function TeamCard({ team, owned, duplicates, toggle, filter, search, collapsed, onToggleCollapse, onLongPress }) {
   const n         = countOwned(team.stickers, owned);
   const total     = team.stickers.length;
+  const teamDups  = team.stickers.reduce((s, c) => s + (duplicates[c] || 0), 0);
   const teamColor = TEAM_COLORS[team.code] || '#1e3055';
 
   const displayed = search
@@ -26,7 +27,10 @@ export default function TeamCard({ team, owned, duplicates, toggle, filter, sear
           <Flag teamCode={team.code} />
           {team.group} · {team.name}
         </span>
-        <span className="team-count">{n}/{total}<span className="team-pct">{Math.round(n/total*100)}%</span></span>
+        <span className="team-count">
+          {teamDups > 0 && <span className="team-dups">{teamDups} rep.</span>}
+          {n}/{total}<span className="team-pct">{Math.round(n/total*100)}%</span>
+        </span>
       </div>
       <div className="team-progress">
         <div className="team-progress-fill" style={{ width: `${(n / total) * 100}%` }} />

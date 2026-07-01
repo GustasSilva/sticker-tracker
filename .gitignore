@@ -1,3 +1,7 @@
 node_modules
 .next
 .env.local
+
+# Supabase CLI (local) — o schema versionado e o supabase/schema.sql
+supabase/*
+!supabase/schema.sql

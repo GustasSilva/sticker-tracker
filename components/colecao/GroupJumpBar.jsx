@@ -21,11 +21,12 @@ export default function GroupJumpBar({ teams, owned, jump }) {
             {gi > 0 && <span className="jump-divider" />}
             <span className="jump-group-label">{g.letter}</span>
             {g.teams.map(t => {
-              const iso = TEAM_ISO[t.code];
-              const n   = countOwned(t.stickers, owned);
-              const pct = Math.round((n / t.stickers.length) * 100);
+              const iso  = TEAM_ISO[t.code];
+              const n    = countOwned(t.stickers, owned);
+              const pct  = Math.round((n / t.stickers.length) * 100);
+              const done = n === t.stickers.length;
               return (
-                <button key={t.code} className="jump-chip" title={`${t.name} (${n}/${t.stickers.length})`}
+                <button key={t.code} className={`jump-chip${done ? ' is-complete' : ''}`} title={`${t.name} (${n}/${t.stickers.length})`}
                   onClick={() => jump(t.code)}>
                   {iso
                     ? <span className={`fi fi-${iso} jump-chip-flag`} />
