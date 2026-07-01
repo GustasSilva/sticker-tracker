@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { normalize, countOwned } from '@/utils/stickers';
 import DupModal from '@/components/stickers/DupModal';
 import GroupJumpBar from './GroupJumpBar';
+import SortDropdown from './SortDropdown';
 import SpecialCard from './SpecialCard';
 import TeamCard from './TeamCard';
 
@@ -83,27 +84,15 @@ export default function ColecaoTab({ data, owned, duplicates, toggle, setCount }
               <span className="collapse-caret">{allCollapsed ? '▸' : '▾'}</span>
               <span className="collapse-text">{allCollapsed ? ' Expandir' : ' Recolher'}</span>
             </button>
+            <SortDropdown value={sort} onChange={setSort} />
           </div>
-          <div className="search-sort-row">
-            <div className="search-wrap">
-              <input type="text" className="search-input"
-                placeholder="🔍 Buscar por código, jogador ou seleção..."
-                value={search} onChange={e => setSearch(e.target.value)} />
-              {search && (
-                <button className="search-clear" onClick={() => setSearch('')} aria-label="Limpar busca">×</button>
-              )}
-            </div>
-            <div className="sort-bar">
-              <span className="sort-label">⇅<span className="sort-label-text"> Ordenar</span></span>
-              <select className={`sort-select${sort !== 'album' ? ' is-active' : ''}`}
-                value={sort} onChange={e => setSort(e.target.value)} title="Ordenar seções">
-                <option value="album">Álbum (padrão)</option>
-                <option value="owned_desc">Mais marcadas</option>
-                <option value="owned_asc">Menos marcadas</option>
-                <option value="dups_desc">Mais repetidas</option>
-                <option value="dups_asc">Menos repetidas</option>
-              </select>
-            </div>
+          <div className="search-wrap">
+            <input type="text" className="search-input"
+              placeholder="🔍 Buscar por código, jogador ou seleção..."
+              value={search} onChange={e => setSearch(e.target.value)} />
+            {search && (
+              <button className="search-clear" onClick={() => setSearch('')} aria-label="Limpar busca">×</button>
+            )}
           </div>
         </div>
         <GroupJumpBar teams={data.teams} owned={owned} jump={jump} />
