@@ -542,6 +542,12 @@ h1 {
 }
 .sort-select:hover, .sort-select:focus { border-color: #ffd700; }
 .sort-select.is-active { border-color: #ffd700; color: #ffd700; }
+.search-sort-row {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; max-width: 560px;
+}
+.search-sort-row .search-wrap { flex: 1; max-width: none; }
+.collapse-all-btn { display: inline-flex; align-items: center; }
 
 /* ---- Comparar status bar ---- */
 .comparar-status {
@@ -845,9 +851,14 @@ h1 {
   .tab-btn { font-size: 0.72rem; padding: 6px 4px; }
   .comparar-tabs { flex-direction: column; }
   .trocas-codes-display { max-height: 180px; }
-  .team-card { scroll-margin-top: 220px; }
+  .team-card { scroll-margin-top: 176px; }
   .filter-bar { gap: 4px; }
   .filter-bar button, .collapse-all-btn { padding: 6px 10px; font-size: 0.76rem; }
+  .collapse-all-btn { padding: 6px 9px; }
+  .collapse-text { display: none; }
+  .sort-label-text { display: none; }
+  .sort-label { font-size: 0.9rem; }
+  .sort-select { padding: 6px 26px 6px 10px; background-position: right 9px center; }
 }
 
 @media (max-width: 360px) {

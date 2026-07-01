@@ -78,28 +78,32 @@ export default function ColecaoTab({ data, owned, duplicates, toggle, setCount }
             {[['all','Todas'],['incomplete','Incompletas'],['dups','Repetidas']].map(([m, l]) => (
               <button key={m} className={filter === m ? 'active' : ''} onClick={() => setFilter(m)}>{l}</button>
             ))}
-            <button className="collapse-all-btn" onClick={toggleCollapseAll}>
-              {allCollapsed ? '▸ Expandir' : '▾ Recolher'}
+            <button className="collapse-all-btn" onClick={toggleCollapseAll}
+              title={allCollapsed ? 'Expandir tudo' : 'Recolher tudo'}>
+              <span className="collapse-caret">{allCollapsed ? '▸' : '▾'}</span>
+              <span className="collapse-text">{allCollapsed ? ' Expandir' : ' Recolher'}</span>
             </button>
           </div>
-          <div className="search-wrap">
-            <input type="text" className="search-input"
-              placeholder="🔍 Buscar por código, jogador ou seleção..."
-              value={search} onChange={e => setSearch(e.target.value)} />
-            {search && (
-              <button className="search-clear" onClick={() => setSearch('')} aria-label="Limpar busca">×</button>
-            )}
-          </div>
-          <div className="sort-bar">
-            <span className="sort-label">⇅ Ordenar</span>
-            <select className={`sort-select${sort !== 'album' ? ' is-active' : ''}`}
-              value={sort} onChange={e => setSort(e.target.value)}>
-              <option value="album">Álbum (padrão)</option>
-              <option value="owned_desc">Mais marcadas</option>
-              <option value="owned_asc">Menos marcadas</option>
-              <option value="dups_desc">Mais repetidas</option>
-              <option value="dups_asc">Menos repetidas</option>
-            </select>
+          <div className="search-sort-row">
+            <div className="search-wrap">
+              <input type="text" className="search-input"
+                placeholder="🔍 Buscar por código, jogador ou seleção..."
+                value={search} onChange={e => setSearch(e.target.value)} />
+              {search && (
+                <button className="search-clear" onClick={() => setSearch('')} aria-label="Limpar busca">×</button>
+              )}
+            </div>
+            <div className="sort-bar">
+              <span className="sort-label">⇅<span className="sort-label-text"> Ordenar</span></span>
+              <select className={`sort-select${sort !== 'album' ? ' is-active' : ''}`}
+                value={sort} onChange={e => setSort(e.target.value)} title="Ordenar seções">
+                <option value="album">Álbum (padrão)</option>
+                <option value="owned_desc">Mais marcadas</option>
+                <option value="owned_asc">Menos marcadas</option>
+                <option value="dups_desc">Mais repetidas</option>
+                <option value="dups_asc">Menos repetidas</option>
+              </select>
+            </div>
           </div>
         </div>
         <GroupJumpBar teams={data.teams} owned={owned} jump={jump} />
