@@ -15,7 +15,7 @@ export default function TeamCard({ team, owned, duplicates, toggle, filter, sear
     : team.stickers;
 
   if (displayed.length === 0) return null;
-  if (!search && !shouldShow(filter, n, total)) return null;
+  if (!search && !shouldShow(filter, n, total, teamDups)) return null;
 
   const complete = n === total;
 

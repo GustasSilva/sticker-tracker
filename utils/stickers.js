@@ -128,9 +128,10 @@ export function teamSummary(codes, data) {
   return top.map(([tc, n]) => `${tc}(${n})`).join(', ') + (extra > 0 ? `… +${extra}` : '');
 }
 
-export function shouldShow(filter, n, total) {
+export function shouldShow(filter, n, total, dups = 0) {
   if (filter === 'incomplete') return n > 0 && n < total;
   if (filter === 'complete') return n === total;
+  if (filter === 'dups') return dups > 0;
   if (filter === 'none') return n === 0;
   return true;
 }

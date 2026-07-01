@@ -522,6 +522,26 @@ h1 {
 }
 .search-input::placeholder { color: #7a8aaa; }
 .search-input:focus { border-color: #ffd700; }
+.search-wrap { position: relative; width: 100%; max-width: 420px; display: flex; }
+.search-wrap .search-input { max-width: none; padding-right: 38px; }
+.search-clear {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  background: #1e3055; color: #aab; border: none; border-radius: 50%;
+  font-size: 1.1rem; line-height: 1; cursor: pointer; transition: all 0.15s;
+}
+.search-clear:hover { background: #ffd700; color: #0a1628; }
+.sort-bar { display: flex; align-items: center; gap: 8px; }
+.sort-label { font-size: 0.78rem; color: #8899aa; white-space: nowrap; }
+.sort-select {
+  background: #0d1e36; border: 1px solid #2a3d5a; color: #c0c8d8;
+  border-radius: 20px; padding: 6px 30px 6px 14px; font-size: 0.8rem; cursor: pointer;
+  outline: none; transition: all 0.2s; appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%238899aa' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+}
+.sort-select:hover, .sort-select:focus { border-color: #ffd700; }
+.sort-select.is-active { border-color: #ffd700; color: #ffd700; }
 
 /* ---- Comparar status bar ---- */
 .comparar-status {
